@@ -1,0 +1,444 @@
+const interactive_graph_djikstra_sketch = (p, sketch_name) => {
+    let nodes = [];
+    let edges = [];
+    let draggedNode = null;
+    let hoveredNode = null;
+    let targetNode = null;
+    let shortestPath = [];
+    
+    // Node class
+    class Node {
+        constructor(id, x, y) {
+            this.id = id;
+            this.x = x;
+            this.y = y;
+            this.vx = 0;
+            this.vy = 0;
+            this.fx = null; // Fixed position when dragging
+            this.fy = null;
+            this.radius = 20;
+        }
+        
+        contains(mx, my) {
+            return p.dist(mx, my, this.x, this.y) < this.radius;
+        }
+        
+        draw() {
+            // Node is part of shortest path
+            const isInPath = shortestPath.includes(this);
+            const isTarget = (this === targetNode);
+            
+            // Draw node circle
+            p.stroke(0);
+            p.strokeWeight(1.5);
+            
+            if (isTarget) {
+                p.fill(0, 255, 0); // Green for target node
+            } else if (this === hoveredNode) {
+                p.fill(153); // Gray color on hover
+            } else {
+                p.fill(255); // White fill
+            }
+            
+            p.circle(this.x, this.y, this.radius * 2);
+            
+            // Draw label
+            p.fill(0);
+            p.noStroke();
+            p.textAlign(p.CENTER, p.CENTER);
+            p.textSize(20);
+            p.text(this.id, this.x, this.y);
+        }
+    }
+    
+    // Edge class
+    class Edge {
+        constructor(source, target, weight) {
+            this.source = source;
+            this.target = target;
+            this.weight = weight;
+        }
+        
+        draw() {
+            // Check if this edge is part of the shortest path
+            const isInPath = isEdgeInPath(this);
+            
+            // Draw edge line
+            if (isInPath) {
+                p.stroke(255, 0, 0); // Red for shortest path
+                p.strokeWeight(3); // Slightly thicker for visibility
+            } else {
+                p.stroke(0); // Black for normal edges
+                p.strokeWeight(2);
+            }
+            p.line(this.source.x, this.source.y, this.target.x, this.target.y);
+            
+            // Calculate center point and perpendicular offset for weight label
+            const centerX = (this.source.x + this.target.x) / 2;
+            const centerY = (this.source.y + this.target.y) / 2;
+            
+            // Calculate perpendicular direction to offset text below the line
+            const dx = this.target.x - this.source.x;
+            const dy = this.target.y - this.source.y;
+            const length = Math.sqrt(dx * dx + dy * dy);
+            
+            if (length > 0) {
+                // Perpendicular vector (rotated 90 degrees)
+                const perpX = -dy / length;
+                const perpY = dx / length;
+                
+                // Offset the text position slightly below the line
+                const offset = 10;
+                const textX = centerX + perpX * offset;
+                const textY = centerY + perpY * offset;
+                
+                // Draw weight text
+                p.fill(0);
+                p.noStroke();
+                p.textAlign(p.CENTER, p.CENTER);
+                p.textSize(12);
+                p.text(this.weight, textX, textY);
+            }
+        }
+    }
+    
+    p.setup = () => {
+        let canvas = p.createCanvas(400, 200);
+        canvas.parent(sketch_name);
+        
+        // Create nodes with random initial positions
+        const nodeIds = ['x₁', 'x₂', 'x₃', 'x₄', 'x₅'];
+        for (let i = 0; i < nodeIds.length; i++) {
+            const x = p.random(50, p.width - 50);
+            const y = p.random(50, p.height - 50);
+            nodes.push(new Node(nodeIds[i], x, y));
+        }
+        
+        // Create edges (same structure as D3 version) with random weights
+        const edgeConnections = [
+            [0, 1], // x₁ - x₂
+            [0, 2], // x₁ - x₃
+            [0, 3], // x₁ - x₄
+            [0, 4], // x₁ - x₅
+            [1, 2], // x₂ - x₃
+            [2, 3], // x₃ - x₄
+            [2, 4]  // x₃ - x₅
+        ];
+        
+        for (let [i, j] of edgeConnections) {
+            const weight = Math.floor(p.random(1, 5)); // Random weight between 1 and 4
+            edges.push(new Edge(nodes[i], nodes[j], weight));
+        }
+        
+        // Set x₂ (index 1) as the target node
+        targetNode = nodes[1];
+    };
+    
+    p.draw = () => {
+        p.clear();
+        
+        // Update shortest path when hovering a node
+        if (hoveredNode && hoveredNode !== targetNode) {
+            shortestPath = dijkstra(hoveredNode, targetNode);
+        } else {
+            shortestPath = [];
+        }
+        
+        // Update physics
+        updatePhysics();
+        
+        // Draw edges first (behind nodes)
+        for (let edge of edges) {
+            edge.draw();
+        }
+        
+        // Draw nodes
+        for (let node of nodes) {
+            node.draw();
+        }
+    };
+    
+    function updatePhysics() {
+        const damping = 0.78;
+        const repulsion = 8000; // Increased repulsion strength
+        const attraction = 120;
+        const centerForce = 0.05; // Stronger center force
+        const minDistance = 60; // Minimum distance between nodes
+        const cursorAttraction = 6; // Cursor attraction strength
+        const cursorRange = 45; // Range for cursor attraction
+        
+        // Reset forces but don't reset velocity to 0 (accumulate forces)
+        for (let node of nodes) {
+            if (node.fx === null && node.fy === null) {
+                // Apply stronger damping when dragging is happening to reduce bounce
+                const dragDamping = draggedNode ? 0.7 : 0.98;
+                node.vx *= dragDamping;
+                node.vy *= dragDamping;
+            }
+        }
+        
+        // Stronger repulsion between all nodes with minimum distance
+        for (let i = 0; i < nodes.length; i++) {
+            for (let j = i + 1; j < nodes.length; j++) {
+                const nodeA = nodes[i];
+                const nodeB = nodes[j];
+                
+                const dx = nodeA.x - nodeB.x;
+                const dy = nodeA.y - nodeB.y;
+                let distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // Ensure minimum distance and prevent division by zero
+                if (distance < minDistance) {
+                    distance = Math.max(distance, 1);
+                    const force = repulsion / (distance * distance);
+                    const fx = (dx / distance) * force;
+                    const fy = (dy / distance) * force;
+                    
+                    if (nodeA.fx === null && nodeA.fy === null) {
+                        nodeA.vx += fx;
+                        nodeA.vy += fy;
+                    }
+                    
+                    if (nodeB.fx === null && nodeB.fy === null) {
+                        nodeB.vx -= fx;
+                        nodeB.vy -= fy;
+                    }
+                } else if (distance > 0) {
+                    const force = repulsion / (distance * distance);
+                    const fx = (dx / distance) * force;
+                    const fy = (dy / distance) * force;
+                    
+                    if (nodeA.fx === null && nodeA.fy === null) {
+                        nodeA.vx += fx;
+                        nodeA.vy += fy;
+                    }
+                    
+                    if (nodeB.fx === null && nodeB.fy === null) {
+                        nodeB.vx -= fx;
+                        nodeB.vy -= fy;
+                    }
+                }
+            }
+        }
+        
+        // Attraction along edges
+        for (let edge of edges) {
+            const dx = edge.target.x - edge.source.x;
+            const dy = edge.target.y - edge.source.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const targetDistance = attraction;
+            
+            if (distance > 0) {
+                const force = (distance - targetDistance) * 0.05;
+                const fx = (dx / distance) * force;
+                const fy = (dy / distance) * force;
+                
+                if (edge.source.fx === null && edge.source.fy === null) {
+                    edge.source.vx += fx;
+                    edge.source.vy += fy;
+                }
+                
+                if (edge.target.fx === null && edge.target.fy === null) {
+                    edge.target.vx -= fx;
+                    edge.target.vy -= fy;
+                }
+            }
+        }
+        
+        // Cursor attraction for visual feedback
+        if (!draggedNode) { // Only apply cursor attraction when not dragging
+            for (let node of nodes) {
+                if (node.fx === null && node.fy === null) {
+                    const dx = p.mouseX - node.x;
+                    const dy = p.mouseY - node.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < cursorRange && distance > 0) {
+                        const force = cursorAttraction * (1 - distance / cursorRange);
+                        node.vx += (dx / distance) * force * 0.1;
+                        node.vy += (dy / distance) * force * 0.1;
+                    }
+                }
+            }
+        }
+        
+        // Strong center force to prevent drift
+        const centerX = p.width / 2;
+        const centerY = p.height / 2;
+        
+        // Calculate center of mass of all nodes
+        let totalX = 0, totalY = 0, freeNodes = 0;
+        for (let node of nodes) {
+            if (node.fx === null && node.fy === null) {
+                totalX += node.x;
+                totalY += node.y;
+                freeNodes++;
+            }
+        }
+        
+        if (freeNodes > 0) {
+            const massX = totalX / freeNodes;
+            const massY = totalY / freeNodes;
+            
+            // Apply center force to counteract drift
+            const driftX = centerX - massX;
+            const driftY = centerY - massY;
+            
+            for (let node of nodes) {
+                if (node.fx === null && node.fy === null) {
+                    node.vx += driftX * centerForce;
+                    node.vy += driftY * centerForce;
+                }
+            }
+        }
+        
+        // Apply forces and update positions with reduced bounce during drag
+        for (let node of nodes) {
+            if (node.fx === null && node.fy === null) {
+                // Apply stronger damping when dragging to reduce system bounce
+                const systemDamping = draggedNode ? 0.6 : damping;
+                node.vx *= systemDamping;
+                node.vy *= systemDamping;
+                
+                // Update position
+                node.x += node.vx;
+                node.y += node.vy;
+                
+                // Keep nodes within bounds
+                node.x = p.constrain(node.x, node.radius, p.width - node.radius);
+                node.y = p.constrain(node.y, node.radius, p.height - node.radius);
+            }
+        }
+    }
+    
+    p.mousePressed = () => {
+        // Only respond to mouse events if mouse is over the canvas
+        if (p.mouseX < 0 || p.mouseX > p.width || p.mouseY < 0 || p.mouseY > p.height) return;
+        // Check if mouse is over any node
+        for (let node of nodes) {
+            if (node.contains(p.mouseX, p.mouseY)) {
+                draggedNode = node;
+                node.fx = node.x;
+                node.fy = node.y;
+                break;
+            }
+        }
+        return false;
+    };
+    
+    // Dijkstra's algorithm for shortest path
+    function dijkstra(startNode, endNode) {
+        if (startNode === endNode) return [];
+        
+        const distances = new Map();
+        const previous = new Map();
+        const unvisited = new Set();
+        
+        // Initialize distances
+        for (let node of nodes) {
+            distances.set(node, Infinity);
+            unvisited.add(node);
+        }
+        distances.set(startNode, 0);
+        
+        while (unvisited.size > 0) {
+            // Find unvisited node with minimum distance
+            let current = null;
+            let minDistance = Infinity;
+            for (let node of unvisited) {
+                if (distances.get(node) < minDistance) {
+                    minDistance = distances.get(node);
+                    current = node;
+                }
+            }
+            
+            if (current === null || distances.get(current) === Infinity) break;
+            
+            unvisited.delete(current);
+            
+            if (current === endNode) break;
+            
+            // Check all neighbors
+            for (let edge of edges) {
+                let neighbor = null;
+                if (edge.source === current) {
+                    neighbor = edge.target;
+                } else if (edge.target === current) {
+                    neighbor = edge.source;
+                }
+                
+                if (neighbor && unvisited.has(neighbor)) {
+                    const altDistance = distances.get(current) + edge.weight;
+                    if (altDistance < distances.get(neighbor)) {
+                        distances.set(neighbor, altDistance);
+                        previous.set(neighbor, current);
+                    }
+                }
+            }
+        }
+        
+        // Reconstruct path
+        const path = [];
+        let current = endNode;
+        while (current !== undefined) {
+            path.unshift(current);
+            current = previous.get(current);
+        }
+        
+        // Return path only if we found a route to start
+        return path[0] === startNode ? path : [];
+    }
+    
+    // Check if an edge is part of the current shortest path
+    function isEdgeInPath(edge) {
+        if (shortestPath.length < 2) return false;
+        
+        for (let i = 0; i < shortestPath.length - 1; i++) {
+            const nodeA = shortestPath[i];
+            const nodeB = shortestPath[i + 1];
+            
+            if ((edge.source === nodeA && edge.target === nodeB) ||
+                (edge.source === nodeB && edge.target === nodeA)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    p.mouseDragged = () => {
+        // Only respond to mouse events if mouse is over the canvas
+        if (p.mouseX < 0 || p.mouseX > p.width || p.mouseY < 0 || p.mouseY > p.height) return;
+        if (draggedNode) {
+            draggedNode.fx = p.mouseX;
+            draggedNode.fy = p.mouseY;
+            draggedNode.x = p.mouseX;
+            draggedNode.y = p.mouseY;
+        }
+        return false;
+    };
+    
+    p.mouseReleased = () => {
+        if (draggedNode) {
+            draggedNode.fx = null;
+            draggedNode.fy = null;
+            draggedNode = null;
+        }
+        return false;
+    };
+    
+    p.mouseMoved = () => {
+        // Only respond to mouse events if mouse is over the canvas
+        if (p.mouseX < 0 || p.mouseX > p.width || p.mouseY < 0 || p.mouseY > p.height) return;
+        // Check for hover
+        hoveredNode = null;
+        for (let node of nodes) {
+            if (node.contains(p.mouseX, p.mouseY)) {
+                hoveredNode = node;
+                break;
+            }
+        }
+        return false;
+    };
+};
+
+export default interactive_graph_djikstra_sketch;

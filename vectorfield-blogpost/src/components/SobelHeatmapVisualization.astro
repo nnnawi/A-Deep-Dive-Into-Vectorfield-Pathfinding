@@ -1,0 +1,41 @@
+---
+// Sobel Heatmap Visualization
+const { title = "Sobel Heatmap Visualization" } = Astro.props;
+---
+
+<div class="p5-component">
+  <div id="sobel_heatmap_visualization_canva"></div>
+</div>
+
+<script>
+  import sobel_heatmap_sketch from '../../../scripts/sobel_heatmap_visualization.js';
+
+  // Initialize p5 instance with the sketch
+  const initSobelHeatmapVisualization = () => {
+    if (typeof window !== 'undefined' && window.p5) {
+      new p5((p) => sobel_heatmap_sketch(p, 'sobel_heatmap_visualization_canva'));
+    }
+  };
+
+  // Wait for p5 to be loaded
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSobelHeatmapVisualization);
+  } else {
+    initSobelHeatmapVisualization();
+  }
+</script>
+
+<style>
+  .p5-component {
+    margin: 2rem 0;
+    display: flex;
+    justify-content: center;
+  }
+
+  #sobel_heatmap_visualization_canva {
+    border: 2px solid #dee2e6;
+    border-radius: 4px;
+    overflow: hidden;
+    background: white;
+  }
+</style>

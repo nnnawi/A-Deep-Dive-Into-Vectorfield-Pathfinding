@@ -1,0 +1,41 @@
+---
+// Weighted Neighbor Vector Field
+const { title = "Weighted Neighbor Vector Field" } = Astro.props;
+---
+
+<div class="p5-component">
+  <div id="weighted_neighbor_vf_canva"></div>
+</div>
+
+<script>
+  import weighted_neighbor_vectorfield_sketch from '../../../scripts/weighted_neighbor_vectorfield.js';
+
+  // Initialize p5 instance with the sketch
+  const initWeightedNeighborVectorfield = () => {
+    if (typeof window !== 'undefined' && window.p5) {
+      new p5((p) => weighted_neighbor_vectorfield_sketch(p, 'weighted_neighbor_vf_canva'));
+    }
+  };
+
+  // Wait for p5 to be loaded
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initWeightedNeighborVectorfield);
+  } else {
+    initWeightedNeighborVectorfield();
+  }
+</script>
+
+<style>
+  .p5-component {
+    margin: 2rem 0;
+    display: flex;
+    justify-content: center;
+  }
+
+  #weighted_neighbor_vf_canva {
+    border: 2px solid #dee2e6;
+    border-radius: 4px;
+    overflow: hidden;
+    background: white;
+  }
+</style>

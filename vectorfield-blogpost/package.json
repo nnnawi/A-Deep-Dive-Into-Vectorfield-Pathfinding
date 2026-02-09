@@ -1,0 +1,17 @@
+{
+  "name": "vectorfield-blogpost",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/mdx": "^4.3.13",
+    "astro": "^5.17.1",
+    "rehype-mathjax": "^7.1.0",
+    "remark-math": "^6.0.0"
+  }
+}

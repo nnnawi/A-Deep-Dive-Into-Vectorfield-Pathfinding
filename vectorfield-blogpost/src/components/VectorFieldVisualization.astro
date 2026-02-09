@@ -1,0 +1,235 @@
+---
+// Interactive Vector Field Visualization with p5.js
+const { title = "Vector Field Visualization" } = Astro.props;
+---
+
+<div class="p5-component">
+  <h3>{title}</h3>
+  <div class="p5-container">
+    <div class="controls">
+      <div class="control-group">
+        <label for="fieldStrength">Field Strength: <span id="strengthValue">1.0</span></label>
+        <input type="range" id="fieldStrength" min="0" max="2" step="0.1" value="1.0" />
+      </div>
+
+      <div class="control-group">
+        <label for="gridSize">Grid Density: <span id="densityValue">20</span></label>
+        <input type="range" id="gridSize" min="10" max="40" step="5" value="20" />
+      </div>
+
+      <div class="control-group">
+        <label>
+          <input type="checkbox" id="showParticles" checked />
+          Show Flow Particles
+        </label>
+      </div>
+
+      <div class="control-group">
+        <label>
+          <input type="checkbox" id="showVectors" checked />
+          Show Vector Arrows
+        </label>
+      </div>
+    </div>
+
+    <div id="vector-field-canvas"></div>
+  </div>
+</div>
+
+<script>
+  // This script runs on the client side
+  // p5 is loaded globally from the Layout
+  let fieldStrength = 1.0;
+  let gridSize = 20;
+  let showParticles = true;
+  let showVectors = true;
+  let particles = [];
+
+  class Particle {
+    constructor(p, x, y) {
+      this.p = p;
+      this.pos = p.createVector(x, y);
+      this.vel = p.createVector(0, 0);
+      this.acc = p.createVector(0, 0);
+      this.maxSpeed = 4;
+      this.prevPos = this.pos.copy();
+    }
+
+    update(p) {
+      this.vel.add(this.acc);
+      this.vel.limit(this.maxSpeed);
+      this.prevPos = this.pos.copy();
+      this.pos.add(this.vel);
+      this.acc.mult(0);
+
+      // Wrap around edges
+      if (this.pos.x < 0) this.pos.x = p.width;
+      if (this.pos.x > p.width) this.pos.x = 0;
+      if (this.pos.y < 0) this.pos.y = p.height;
+      if (this.pos.y > p.height) this.pos.y = 0;
+    }
+
+    applyForce(force) {
+      this.acc.add(force);
+    }
+
+    show(p) {
+      p.stroke(100, 150, 255, 200);
+      p.strokeWeight(2);
+      p.line(this.prevPos.x, this.prevPos.y, this.pos.x, this.pos.y);
+    }
+  }
+
+  const sketch = (p) => {
+    p.setup = () => {
+      const canvas = p.createCanvas(600, 400);
+      canvas.parent('vector-field-canvas');
+
+      // Initialize particles
+      for (let i = 0; i < 200; i++) {
+        particles.push(new Particle(p, p.random(p.width), p.random(p.height)));
+      }
+    };
+
+    p.draw = () => {
+      p.background(255);
+
+      // Draw vector field
+      if (showVectors) {
+        p.stroke(0, 100);
+        p.strokeWeight(1);
+        const step = p.width / gridSize;
+
+        for (let x = step / 2; x < p.width; x += step) {
+          for (let y = step / 2; y < p.height; y += step) {
+            const vec = getVectorField(p, x, y);
+            vec.mult(10 * fieldStrength);
+
+            // Draw arrow
+            p.push();
+            p.translate(x, y);
+            p.line(0, 0, vec.x, vec.y);
+            p.pop();
+          }
+        }
+      }
+
+      // Update and draw particles
+      if (showParticles) {
+        for (let particle of particles) {
+          const force = getVectorField(p, particle.pos.x, particle.pos.y);
+          force.mult(fieldStrength * 0.5);
+          particle.applyForce(force);
+          particle.update(p);
+          particle.show(p);
+        }
+      }
+    };
+
+    // Circular vector field: F(x,y) = (-y, x)
+    function getVectorField(p, x, y) {
+      const centerX = p.width / 2;
+      const centerY = p.height / 2;
+      const dx = x - centerX;
+      const dy = y - centerY;
+
+      // Create a circular field
+      return p.createVector(-dy, dx).normalize();
+    }
+  };
+
+  // Initialize p5
+  new p5(sketch);
+
+  // Control event listeners
+  document.getElementById('fieldStrength')?.addEventListener('input', (e) => {
+    fieldStrength = parseFloat(e.target.value);
+    document.getElementById('strengthValue').textContent = fieldStrength.toFixed(1);
+  });
+
+  document.getElementById('gridSize')?.addEventListener('input', (e) => {
+    gridSize = parseInt(e.target.value);
+    document.getElementById('densityValue').textContent = gridSize;
+  });
+
+  document.getElementById('showParticles')?.addEventListener('change', (e) => {
+    showParticles = e.target.checked;
+  });
+
+  document.getElementById('showVectors')?.addEventListener('change', (e) => {
+    showVectors = e.target.checked;
+  });
+</script>
+
+<style>
+  .p5-component {
+    margin: 3rem 0;
+    padding: 2rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+  }
+
+  .p5-component h3 {
+    margin-top: 0;
+    color: #2c3e50;
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .p5-container {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+  }
+
+  .controls {
+    flex: 0 0 250px;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .control-group label {
+    font-weight: 500;
+    color: #495057;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .control-group input[type="range"] {
+    width: 100%;
+    cursor: pointer;
+  }
+
+  .control-group input[type="checkbox"] {
+    cursor: pointer;
+  }
+
+  #vector-field-canvas {
+    flex: 1;
+    border: 2px solid #dee2e6;
+    border-radius: 4px;
+    overflow: hidden;
+    background: white;
+  }
+
+  @media (max-width: 768px) {
+    .p5-container {
+      flex-direction: column;
+    }
+
+    .controls {
+      flex: 1;
+      width: 100%;
+    }
+  }
+</style>

@@ -1,0 +1,362 @@
+---
+// Interactive Pathfinding Demo with p5.js
+const { title = "Gradient-Based Pathfinding" } = Astro.props;
+---
+
+<div class="p5-component">
+  <h3>{title}</h3>
+  <div class="p5-container">
+    <div class="controls">
+      <div class="control-group">
+        <label for="stepSize">Step Size: <span id="stepValue">0.5</span></label>
+        <input type="range" id="stepSize" min="0.1" max="2" step="0.1" value="0.5" />
+      </div>
+
+      <div class="control-group">
+        <label for="maxSteps">Max Steps: <span id="stepsValue">500</span></label>
+        <input type="range" id="maxSteps" min="100" max="1000" step="50" value="500" />
+      </div>
+
+      <div class="control-group">
+        <label>
+          <input type="checkbox" id="showGradient" checked />
+          Show Gradient Field
+        </label>
+      </div>
+
+      <div class="control-group">
+        <label>
+          <input type="checkbox" id="showPath" checked />
+          Show Path
+        </label>
+      </div>
+
+      <div class="control-group">
+        <button id="resetBtn" class="reset-button">Reset Path</button>
+      </div>
+
+      <div class="info">
+        <small>Click to set start point (green)<br>Click again to set end point (red)</small>
+      </div>
+    </div>
+
+    <div id="pathfinding-canvas"></div>
+  </div>
+</div>
+
+<script>
+  // p5 is loaded globally from the Layout
+  let stepSize = 0.5;
+  let maxSteps = 500;
+  let showGradient = true;
+  let showPath = true;
+
+  let startPoint = null;
+  let endPoint = null;
+  let path = [];
+  let potentialField = [];
+
+  const sketch = (p) => {
+    const gridSize = 40;
+    const cellSize = 15;
+
+    p.setup = () => {
+      const canvas = p.createCanvas(600, 400);
+      canvas.parent('pathfinding-canvas');
+
+      // Default points
+      startPoint = p.createVector(50, 200);
+      endPoint = p.createVector(550, 200);
+
+      computePotentialField();
+      computePath();
+    };
+
+    p.draw = () => {
+      p.background(255);
+
+      // Draw gradient field
+      if (showGradient && endPoint) {
+        for (let i = 0; i < potentialField.length; i++) {
+          const x = (i % gridSize) * cellSize;
+          const y = Math.floor(i / gridSize) * cellSize;
+          const value = potentialField[i];
+
+          // Color based on potential
+          const intensity = p.map(value, 0, 500, 255, 0);
+          p.fill(intensity, intensity, 255, 100);
+          p.noStroke();
+          p.rect(x, y, cellSize, cellSize);
+        }
+      }
+
+      // Draw obstacles (simple circular obstacles)
+      p.fill(50);
+      p.noStroke();
+      p.ellipse(200, 150, 80, 80);
+      p.ellipse(400, 250, 100, 100);
+
+      // Draw path
+      if (showPath && path.length > 1) {
+        p.stroke(100, 150, 255);
+        p.strokeWeight(3);
+        p.noFill();
+        p.beginShape();
+        for (let point of path) {
+          p.vertex(point.x, point.y);
+        }
+        p.endShape();
+      }
+
+      // Draw start point
+      if (startPoint) {
+        p.fill(0, 255, 0);
+        p.noStroke();
+        p.ellipse(startPoint.x, startPoint.y, 20, 20);
+        p.fill(0);
+        p.textAlign(p.CENTER, p.CENTER);
+        p.text('S', startPoint.x, startPoint.y);
+      }
+
+      // Draw end point
+      if (endPoint) {
+        p.fill(255, 0, 0);
+        p.noStroke();
+        p.ellipse(endPoint.x, endPoint.y, 20, 20);
+        p.fill(255);
+        p.textAlign(p.CENTER, p.CENTER);
+        p.text('E', endPoint.x, endPoint.y);
+      }
+    };
+
+    p.mouseClicked = () => {
+      if (p.mouseX < 0 || p.mouseX > p.width || p.mouseY < 0 || p.mouseY > p.height) {
+        return;
+      }
+
+      if (!startPoint) {
+        startPoint = p.createVector(p.mouseX, p.mouseY);
+      } else if (!endPoint) {
+        endPoint = p.createVector(p.mouseX, p.mouseY);
+        computePotentialField();
+        computePath();
+      } else {
+        // Reset
+        startPoint = p.createVector(p.mouseX, p.mouseY);
+        endPoint = null;
+        path = [];
+      }
+    };
+
+    function computePotentialField() {
+      if (!endPoint) return;
+
+      potentialField = [];
+
+      for (let y = 0; y < p.height; y += cellSize) {
+        for (let x = 0; x < p.width; x += cellSize) {
+          // Distance to goal
+          const dist = p.dist(x, y, endPoint.x, endPoint.y);
+
+          // Add obstacle repulsion
+          const d1 = p.dist(x, y, 200, 150);
+          const d2 = p.dist(x, y, 400, 250);
+
+          const repulsion1 = d1 < 50 ? 1000 / (d1 + 1) : 0;
+          const repulsion2 = d2 < 60 ? 1000 / (d2 + 1) : 0;
+
+          const potential = dist + repulsion1 + repulsion2;
+          potentialField.push(potential);
+        }
+      }
+    }
+
+    function computePath() {
+      if (!startPoint || !endPoint) return;
+
+      path = [startPoint.copy()];
+      let current = startPoint.copy();
+
+      for (let i = 0; i < maxSteps; i++) {
+        // Compute gradient at current position
+        const grad = computeGradient(current.x, current.y);
+
+        // Move in direction of negative gradient
+        current.x -= grad.x * stepSize;
+        current.y -= grad.y * stepSize;
+
+        // Keep in bounds
+        current.x = p.constrain(current.x, 0, p.width);
+        current.y = p.constrain(current.y, 0, p.height);
+
+        path.push(current.copy());
+
+        // Check if reached goal
+        if (p.dist(current.x, current.y, endPoint.x, endPoint.y) < 10) {
+          break;
+        }
+      }
+    }
+
+    function computeGradient(x, y) {
+      const epsilon = 5;
+
+      const px = getPotential(x + epsilon, y);
+      const nx = getPotential(x - epsilon, y);
+      const py = getPotential(x, y + epsilon);
+      const ny = getPotential(x, y - epsilon);
+
+      return p.createVector(
+        (px - nx) / (2 * epsilon),
+        (py - ny) / (2 * epsilon)
+      );
+    }
+
+    function getPotential(x, y) {
+      if (!endPoint) return 0;
+
+      // Distance to goal
+      const dist = p.dist(x, y, endPoint.x, endPoint.y);
+
+      // Obstacle repulsion
+      const d1 = p.dist(x, y, 200, 150);
+      const d2 = p.dist(x, y, 400, 250);
+
+      const repulsion1 = d1 < 50 ? 1000 / (d1 + 1) : 0;
+      const repulsion2 = d2 < 60 ? 1000 / (d2 + 1) : 0;
+
+      return dist + repulsion1 + repulsion2;
+    }
+
+    window.recomputePath = () => {
+      computePotentialField();
+      computePath();
+    };
+  };
+
+  new p5(sketch);
+
+  // Control event listeners
+  document.getElementById('stepSize')?.addEventListener('input', (e) => {
+    stepSize = parseFloat(e.target.value);
+    document.getElementById('stepValue').textContent = stepSize.toFixed(1);
+    if (window.recomputePath) window.recomputePath();
+  });
+
+  document.getElementById('maxSteps')?.addEventListener('input', (e) => {
+    maxSteps = parseInt(e.target.value);
+    document.getElementById('stepsValue').textContent = maxSteps;
+    if (window.recomputePath) window.recomputePath();
+  });
+
+  document.getElementById('showGradient')?.addEventListener('change', (e) => {
+    showGradient = e.target.checked;
+  });
+
+  document.getElementById('showPath')?.addEventListener('change', (e) => {
+    showPath = e.target.checked;
+  });
+
+  document.getElementById('resetBtn')?.addEventListener('click', () => {
+    startPoint = null;
+    endPoint = null;
+    path = [];
+  });
+</script>
+
+<style>
+  .p5-component {
+    margin: 3rem 0;
+    padding: 2rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+  }
+
+  .p5-component h3 {
+    margin-top: 0;
+    color: #2c3e50;
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .p5-container {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+  }
+
+  .controls {
+    flex: 0 0 250px;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .control-group label {
+    font-weight: 500;
+    color: #495057;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .control-group input[type="range"] {
+    width: 100%;
+    cursor: pointer;
+  }
+
+  .control-group input[type="checkbox"] {
+    cursor: pointer;
+  }
+
+  .reset-button {
+    padding: 0.5rem 1rem;
+    background: #007acc;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.2s;
+  }
+
+  .reset-button:hover {
+    background: #005a9e;
+  }
+
+  .info {
+    padding: 0.75rem;
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 4px;
+    color: #856404;
+  }
+
+  #pathfinding-canvas {
+    flex: 1;
+    border: 2px solid #dee2e6;
+    border-radius: 4px;
+    overflow: hidden;
+    background: white;
+    cursor: crosshair;
+  }
+
+  @media (max-width: 768px) {
+    .p5-container {
+      flex-direction: column;
+    }
+
+    .controls {
+      flex: 1;
+      width: 100%;
+    }
+  }
+</style>

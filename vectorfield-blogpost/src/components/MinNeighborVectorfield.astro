@@ -1,0 +1,41 @@
+---
+// Minimum Neighbor Vector Field
+const { title = "Minimum Neighbor Vector Field" } = Astro.props;
+---
+
+<div class="p5-component">
+  <div id="min_neighbor_vf_canva"></div>
+</div>
+
+<script>
+  import min_neighbor_vectorfield_sketch from '../../../scripts/min_neighbor_vectorfield.js';
+
+  // Initialize p5 instance with the sketch
+  const initMinNeighborVectorfield = () => {
+    if (typeof window !== 'undefined' && window.p5) {
+      new p5((p) => min_neighbor_vectorfield_sketch(p, 'min_neighbor_vf_canva'));
+    }
+  };
+
+  // Wait for p5 to be loaded
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initMinNeighborVectorfield);
+  } else {
+    initMinNeighborVectorfield();
+  }
+</script>
+
+<style>
+  .p5-component {
+    margin: 2rem 0;
+    display: flex;
+    justify-content: center;
+  }
+
+  #min_neighbor_vf_canva {
+    border: 2px solid #dee2e6;
+    border-radius: 4px;
+    overflow: hidden;
+    background: white;
+  }
+</style>

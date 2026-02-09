@@ -1,0 +1,41 @@
+---
+// Interactive Graph Visualization
+const { title = "Interactive Graph" } = Astro.props;
+---
+
+<div class="p5-component">
+  <div id="interactive_graph_canva"></div>
+</div>
+
+<script>
+  import interactive_graph_sketch from '../../../scripts/interactive_graph.js';
+
+  // Initialize p5 instance with the sketch
+  const initInteractiveGraph = () => {
+    if (typeof window !== 'undefined' && window.p5) {
+      new p5((p) => interactive_graph_sketch(p, 'interactive_graph_canva'));
+    }
+  };
+
+  // Wait for p5 to be loaded
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initInteractiveGraph);
+  } else {
+    initInteractiveGraph();
+  }
+</script>
+
+<style>
+  .p5-component {
+    margin: 2rem 0;
+    display: flex;
+    justify-content: center;
+  }
+
+  #interactive_graph_canva {
+    border: 2px solid #dee2e6;
+    border-radius: 4px;
+    overflow: hidden;
+    background: white;
+  }
+</style>

@@ -1,0 +1,140 @@
+import VectorFieldVisualization from './VectorFieldVisualization.astro';
+import WaveSimulation from './WaveSimulation.astro';
+import PathfindingDemo from './PathfindingDemo.astro';
+
+# Vector Field Pathfinding: A Mathematical Approach
+
+In this interactive blog post, we explore how vector fields and gradient descent
+can be used to solve pathfinding problems. We'll combine mathematical theory with
+interactive visualizations to build intuition about these powerful techniques.
+
+## Introduction to Vector Fields
+
+A vector field assigns a vector to every point in space. Mathematically, a 2D vector
+field can be expressed as $\mathbf{F}(x, y) = P(x,y)\mathbf{i} + Q(x,y)\mathbf{j}$,
+where $P$ and $Q$ are scalar functions defining the components of the field.
+
+One of the simplest examples is a circular vector field, where vectors rotate around
+a center point. This can be defined as:
+
+$$
+\mathbf{F}(x, y) = -y\mathbf{i} + x\mathbf{j}
+$$
+
+Below is an interactive visualization of this circular vector field. You can adjust
+the field strength and see how particles flow along the field lines.
+
+<VectorFieldVisualization title="Interactive Vector Field" />
+
+## Wave Phenomena and Interference
+
+Before diving into pathfinding, let's explore how waves interact in space. Wave
+interference is a fundamental concept that helps us understand how multiple sources
+can create complex patterns. A wave from a point source can be modeled as:
+
+$$
+u(x, y, t) = A \sin(k d - \omega t + \phi)
+$$
+
+where $A$ is the amplitude, $k$ is the wave number, $d = \sqrt{x^2 + y^2}$ is
+the distance from the source, $\omega$ is the angular frequency, and $\phi$ is
+the phase offset.
+
+When multiple waves overlap, they interfere according to the principle of superposition.
+Try the simulation below to see how two wave sources create beautiful interference patterns:
+
+<WaveSimulation title="Wave Interference Pattern" />
+
+## Gradient-Based Pathfinding
+
+Now we arrive at the heart of our discussion: using gradients for pathfinding.
+The key idea is to create a *potential field* where the goal has low potential
+and obstacles have high potential. An agent can then follow the negative gradient
+to reach the goal while avoiding obstacles.
+
+### The Potential Field
+
+We define a potential function $V(\mathbf{r})$ that combines attractive and
+repulsive forces:
+
+$$
+V(\mathbf{r}) = V_{\text{attr}}(\mathbf{r}) + \sum_{i} V_{\text{rep}}^{(i)}(\mathbf{r})
+$$
+
+The attractive potential pulls the agent toward the goal:
+
+$$
+V_{\text{attr}}(\mathbf{r}) = \frac{1}{2} k_{\text{attr}} |\mathbf{r} - \mathbf{r}_{\text{goal}}|^2
+$$
+
+The repulsive potential pushes the agent away from obstacles:
+
+$$
+V_{\text{rep}}(\mathbf{r}) = \begin{cases}
+\frac{1}{2} k_{\text{rep}} \left(\frac{1}{d} - \frac{1}{d_0}\right)^2 & \text{if } d \leq d_0 \\
+0 & \text{if } d > d_0
+\end{cases}
+$$
+
+where $d$ is the distance to the nearest obstacle and $d_0$ is the influence radius.
+
+### Gradient Descent Navigation
+
+The force acting on the agent is the negative gradient of the potential:
+
+$$
+\mathbf{F}(\mathbf{r}) = -\nabla V(\mathbf{r}) = -\left(\frac{\partial V}{\partial x}\mathbf{i} + \frac{\partial V}{\partial y}\mathbf{j}\right)
+$$
+
+The agent updates its position using gradient descent:
+
+$$
+\mathbf{r}_{n+1} = \mathbf{r}_n - \alpha \nabla V(\mathbf{r}_n)
+$$
+
+where $\alpha$ is the step size. Try the interactive demo below to see this in action!
+
+<PathfindingDemo title="Interactive Pathfinding Demo" />
+
+## Advanced Topics
+
+### Path Optimization
+
+While gradient descent provides a simple solution, we can optimize the path by
+minimizing a cost functional:
+
+$$
+J[\mathbf{r}(t)] = \int_{0}^{T} \left( \alpha |\dot{\mathbf{r}}(t)|^2 + \beta V(\mathbf{r}(t)) \right) dt
+$$
+
+This formulation balances path length (first term) with obstacle avoidance (second term),
+leading to smoother and more efficient trajectories.
+
+### The Euler-Lagrange Equation
+
+To find the optimal path, we apply the calculus of variations. The Euler-Lagrange
+equation for our functional is:
+
+$$
+\frac{d}{dt}\left(\frac{\partial L}{\partial \dot{\mathbf{r}}}\right) - \frac{\partial L}{\partial \mathbf{r}} = 0
+$$
+
+where $L(\mathbf{r}, \dot{\mathbf{r}}, t) = \alpha |\dot{\mathbf{r}}|^2 + \beta V(\mathbf{r})$
+is the Lagrangian. Solving this differential equation yields the optimal trajectory.
+
+## Conclusion
+
+Vector field pathfinding combines elegant mathematics with practical algorithms.
+By treating navigation as an optimization problem in a potential field, we can
+create robust pathfinding systems that naturally avoid obstacles while reaching goals.
+
+The interactive visualizations above demonstrate how these concepts work in practice.
+Key takeaways include:
+
+- Vector fields provide a natural way to represent forces and flows in space
+- Potential fields combine attractive and repulsive forces for navigation
+- Gradient descent offers a simple but effective pathfinding algorithm
+- More sophisticated methods can optimize paths using variational calculus
+
+These techniques extend beyond robotics into fields like fluid dynamics, electromagnetic
+simulation, and even neural network optimization where gradient-based methods reign supreme.

@@ -1,0 +1,41 @@
+---
+// Agent Motion in Vector Field
+const { title = "Agent Motion Vector Field" } = Astro.props;
+---
+
+<div class="p5-component">
+  <div id="agent_motion_canva"></div>
+</div>
+
+<script>
+  import agent_motion_sketch from '../../../scripts/agent_motion_vectorfield.js';
+
+  // Initialize p5 instance with the sketch
+  const initAgentMotionVectorfield = () => {
+    if (typeof window !== 'undefined' && window.p5) {
+      new p5((p) => agent_motion_sketch(p, 'agent_motion_canva'));
+    }
+  };
+
+  // Wait for p5 to be loaded
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAgentMotionVectorfield);
+  } else {
+    initAgentMotionVectorfield();
+  }
+</script>
+
+<style>
+  .p5-component {
+    margin: 2rem 0;
+    display: flex;
+    justify-content: center;
+  }
+
+  #agent_motion_canva {
+    border: 2px solid #dee2e6;
+    border-radius: 4px;
+    overflow: hidden;
+    background: white;
+  }
+</style>

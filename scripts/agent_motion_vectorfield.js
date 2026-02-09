@@ -1,0 +1,519 @@
+class node {
+    constructor(x, y){
+        this.isWall = false;
+        this.dist = 999;
+        this.display_dist = 999;
+        this.wasVisited = false;
+        this.vector_angle = 0;
+        this.display_vector_angle = 0;
+        this.x = x;
+        this.y = y;
+    }
+}
+
+const agent_motion_sketch = (p, sketch_name) => {
+    const arg = {
+        screen: {
+            w: 720,
+            h: 480,
+        },
+        grid: {
+            tile_size: 30,
+            w: 0,
+            h: 0,
+            stroke: 100,
+            stroke_weight: 1,
+        },
+        arrow: {
+            stroke: 125,
+            stroke_weight: 1.5,
+            main_len: 14,
+            scd_len: 5,
+            angle: 210,
+        }
+    }
+
+    const dist_arr = {
+        Euclidian: [
+            [1.41, 1, 1.41],
+            [1, 0, 1],
+            [1.41, 1, 1.41],
+        ]
+    }
+
+    var gfx_grid;
+    var gfx_heatmap;
+    var gfx_vectorfield;
+    var gfx_agents;
+
+    var node_grid;
+    var agents = [];
+
+    var is_dragging = false;
+    var wallpen_state = true;
+
+    var use_lerp = false;
+    var agent_speed = 2.0;
+    var agent_count = 10;
+    var lerp_alpha = 0.15;
+
+    var target = {
+        x: 0,
+        y: 0,
+    }
+
+    // Agent class
+    class Agent {
+        constructor(x, y) {
+            this.pos = p.createVector(x, y);
+            this.velocity = p.createVector(0, 0);
+            this.size = 8;
+        }
+
+        update(use_lerp, speed, alpha) {
+            // Get current grid position
+            let grid_x = Math.floor(this.pos.x / arg.grid.tile_size);
+            let grid_y = Math.floor(this.pos.y / arg.grid.tile_size);
+
+            // Check if within bounds - if not, respawn
+            if (grid_x < 0 || grid_x >= arg.grid.w || grid_y < 0 || grid_y >= arg.grid.h) {
+                this.respawn();
+                return;
+            }
+
+            let current_node = node_grid[grid_y][grid_x];
+
+            // If on wall, respawn (shouldn't happen with collision detection)
+            if (current_node.isWall) {
+                this.respawn();
+                return;
+            }
+
+            // If reached target, respawn
+            if (grid_x === target.x && grid_y === target.y) {
+                this.respawn();
+                return;
+            }
+
+            // Get vector field direction at current position
+            let angle = current_node.vector_angle;
+            let target_velocity = p.createVector(
+                Math.cos(angle + p.PI / 2),
+                Math.sin(angle + p.PI / 2)
+            );
+            target_velocity.mult(speed);
+
+            if (use_lerp) {
+                // Smooth velocity using LERP with adjustable alpha
+                this.velocity.lerp(target_velocity, alpha);
+            } else {
+                // Direct velocity assignment
+                this.velocity = target_velocity.copy();
+            }
+
+            // Calculate next position following the vector field
+            let next_pos = p5.Vector.add(this.pos, this.velocity);
+
+            // Collision detection with wall-following behavior
+            next_pos = this.resolveCollisionWithVectorField(this.pos, next_pos, this.velocity);
+
+            // Update position
+            this.pos = next_pos;
+
+            // Final safety check - if somehow ended up in a wall, respawn
+            let final_grid_x = Math.floor(this.pos.x / arg.grid.tile_size);
+            let final_grid_y = Math.floor(this.pos.y / arg.grid.tile_size);
+            if (final_grid_x >= 0 && final_grid_x < arg.grid.w &&
+                final_grid_y >= 0 && final_grid_y < arg.grid.h) {
+                if (node_grid[final_grid_y][final_grid_x].isWall) {
+                    this.respawn();
+                    return;
+                }
+            }
+
+            // Check if reached target (within 1 tile)
+            let dist_to_target = p.dist(
+                this.pos.x, this.pos.y,
+                (target.x + 0.5) * arg.grid.tile_size,
+                (target.y + 0.5) * arg.grid.tile_size
+            );
+            if (dist_to_target < arg.grid.tile_size) {
+                this.respawn();
+            }
+        }
+
+        resolveCollisionWithVectorField(start_pos, end_pos, velocity) {
+            // First check if we can move freely to the destination
+            let end_grid_x = Math.floor(end_pos.x / arg.grid.tile_size);
+            let end_grid_y = Math.floor(end_pos.y / arg.grid.tile_size);
+
+            // Out of bounds check
+            if (end_grid_x < 0 || end_grid_x >= arg.grid.w ||
+                end_grid_y < 0 || end_grid_y >= arg.grid.h) {
+                return this.slideAlongBoundary(start_pos, velocity);
+            }
+
+            // Check destination cell
+            let end_is_wall = node_grid[end_grid_y][end_grid_x].isWall;
+
+            // Check diagonal corners to prevent cutting through
+            let start_grid_x = Math.floor(start_pos.x / arg.grid.tile_size);
+            let start_grid_y = Math.floor(start_pos.y / arg.grid.tile_size);
+
+            let diagonal_blocked = false;
+            if (start_grid_x !== end_grid_x && start_grid_y !== end_grid_y) {
+                let wall_x = node_grid[start_grid_y][end_grid_x].isWall;
+                let wall_y = node_grid[end_grid_y][start_grid_x].isWall;
+
+                // If both adjacent cells are walls, can't squeeze through
+                if (wall_x && wall_y) {
+                    diagonal_blocked = true;
+                }
+            }
+
+            // If path is clear, move freely
+            if (!end_is_wall && !diagonal_blocked) {
+                return end_pos.copy();
+            }
+
+            // There's a collision - need to slide along the obstacle
+            // The key is to keep moving in the vector field direction as much as possible
+
+            // Try moving only in X direction
+            let slide_x_pos = p.createVector(end_pos.x, start_pos.y);
+            let slide_x_valid = this.isPositionValid(slide_x_pos);
+
+            // Try moving only in Y direction
+            let slide_y_pos = p.createVector(start_pos.x, end_pos.y);
+            let slide_y_valid = this.isPositionValid(slide_y_pos);
+
+            // Choose the direction that maintains more of the vector field direction
+            if (slide_x_valid && slide_y_valid) {
+                // Both directions are valid - choose the one more aligned with velocity
+                let x_component = Math.abs(velocity.x);
+                let y_component = Math.abs(velocity.y);
+
+                return x_component > y_component ? slide_x_pos : slide_y_pos;
+            } else if (slide_x_valid) {
+                return slide_x_pos;
+            } else if (slide_y_valid) {
+                return slide_y_pos;
+            }
+
+            // If neither axis movement works, try a smaller movement
+            let reduced_velocity = velocity.copy().mult(0.5);
+            let reduced_pos = p5.Vector.add(start_pos, reduced_velocity);
+
+            if (this.isPositionValid(reduced_pos)) {
+                return reduced_pos;
+            }
+
+            // Can't move anywhere - stay in place
+            return start_pos.copy();
+        }
+
+        slideAlongBoundary(start_pos, velocity) {
+            // Clamp to boundaries while maintaining as much velocity as possible
+            let new_x = start_pos.x + velocity.x;
+            let new_y = start_pos.y + velocity.y;
+
+            // Clamp X
+            let max_x = (arg.grid.w - 0.5) * arg.grid.tile_size;
+            let min_x = 0.5 * arg.grid.tile_size;
+            if (new_x < min_x) new_x = min_x;
+            if (new_x > max_x) new_x = max_x;
+
+            // Clamp Y
+            let max_y = (arg.grid.h - 0.5) * arg.grid.tile_size;
+            let min_y = 0.5 * arg.grid.tile_size;
+            if (new_y < min_y) new_y = min_y;
+            if (new_y > max_y) new_y = max_y;
+
+            return p.createVector(new_x, new_y);
+        }
+
+        isPositionValid(pos) {
+            let grid_x = Math.floor(pos.x / arg.grid.tile_size);
+            let grid_y = Math.floor(pos.y / arg.grid.tile_size);
+
+            // Check bounds
+            if (grid_x < 0 || grid_x >= arg.grid.w ||
+                grid_y < 0 || grid_y >= arg.grid.h) {
+                return false;
+            }
+
+            // Check if wall
+            return !node_grid[grid_y][grid_x].isWall;
+        }
+
+        respawn() {
+            // Respawn at random position (not on wall or target)
+            let max_attempts = 100;
+            let attempts = 0;
+
+            while (attempts < max_attempts) {
+                let grid_x = Math.floor(p.random(arg.grid.w));
+                let grid_y = Math.floor(p.random(arg.grid.h));
+
+                let node = node_grid[grid_y][grid_x];
+
+                if (!node.isWall && !(grid_x === target.x && grid_y === target.y)) {
+                    this.pos.x = (grid_x + 0.5) * arg.grid.tile_size;
+                    this.pos.y = (grid_y + 0.5) * arg.grid.tile_size;
+                    this.velocity = p.createVector(0, 0);
+                    break;
+                }
+
+                attempts++;
+            }
+        }
+
+        draw() {
+            gfx_agents.push();
+            gfx_agents.fill(255);
+            gfx_agents.noStroke();
+            gfx_agents.ellipse(this.pos.x, this.pos.y, this.size, this.size);
+
+            // Draw a small trail/velocity indicator
+            gfx_agents.stroke(255, 150);
+            gfx_agents.strokeWeight(1.5);
+            gfx_agents.line(
+                this.pos.x, this.pos.y,
+                this.pos.x - this.velocity.x * 2,
+                this.pos.y - this.velocity.y * 2
+            );
+            gfx_agents.pop();
+        }
+    }
+
+    p.setup = () => {
+        let canvas = p.createCanvas(arg.screen.w, arg.screen.h);
+        canvas.parent(sketch_name);
+
+        arg.grid.w = p.floor(arg.screen.w / arg.grid.tile_size);
+        arg.grid.h = p.floor(arg.screen.h / arg.grid.tile_size);
+
+        node_grid = new Array(arg.grid.h).fill().map((_, y) =>
+            new Array(arg.grid.w).fill().map((_, x) => new node(x, y))
+        );
+
+        gfx_grid = p.createGraphics(arg.screen.w, arg.screen.h);
+        gfx_draw_grid(p, gfx_grid, arg);
+
+        gfx_heatmap = p.createGraphics(arg.screen.w, arg.screen.h);
+        gfx_vectorfield = p.createGraphics(arg.screen.w, arg.screen.h);
+        gfx_agents = p.createGraphics(arg.screen.w, arg.screen.h);
+
+        // Compute initial heatmap and vector field
+        djikstra_algorithm(node_grid, target, dist_arr.Euclidian, arg);
+        update_vectorfield_sobel(p, node_grid, arg);
+
+        // Initialize agents
+        for (let i = 0; i < agent_count; i++) {
+            agents.push(new Agent(0, 0));
+            agents[i].respawn();
+        }
+
+        // Setup event listeners
+        setupEventListeners();
+    }
+
+    function setupEventListeners() {
+        // Add event listener for LERP toggle
+        const lerpRadios = document.querySelectorAll('input[name="agent_lerp"]');
+        lerpRadios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                use_lerp = e.target.value === 'lerp';
+            });
+        });
+
+        // Add event listener for speed slider
+        const speedSlider = document.getElementById('agent-speed-slider');
+        const speedValue = document.getElementById('agent-speed-value');
+        if (speedSlider) {
+            speedSlider.addEventListener('input', (e) => {
+                agent_speed = parseFloat(e.target.value);
+                if (speedValue) {
+                    speedValue.textContent = agent_speed.toFixed(1);
+                }
+            });
+        } else {
+            console.log('Speed slider not found');
+        }
+
+        // Add event listener for agent count slider
+        const countSlider = document.getElementById('agent-count-slider');
+        const countValue = document.getElementById('agent-count-value');
+        if (countSlider) {
+            countSlider.addEventListener('input', (e) => {
+                let new_count = parseInt(e.target.value);
+                if (countValue) {
+                    countValue.textContent = new_count;
+                }
+
+                // Adjust agent array size
+                if (new_count > agents.length) {
+                    // Add more agents
+                    for (let i = agents.length; i < new_count; i++) {
+                        let agent = new Agent(0, 0);
+                        agent.respawn();
+                        agents.push(agent);
+                    }
+                } else if (new_count < agents.length) {
+                    // Remove excess agents
+                    agents.splice(new_count);
+                }
+                agent_count = new_count;
+            });
+        } else {
+            console.log('Count slider not found');
+        }
+
+        // Add event listener for LERP alpha slider
+        const alphaSlider = document.getElementById('agent-lerp-alpha-slider');
+        const alphaValue = document.getElementById('agent-lerp-alpha-value');
+        if (alphaSlider) {
+            alphaSlider.addEventListener('input', (e) => {
+                lerp_alpha = parseFloat(e.target.value);
+                if (alphaValue) {
+                    alphaValue.textContent = lerp_alpha.toFixed(2);
+                }
+            });
+        } else {
+            console.log('Alpha slider not found');
+        }
+    }
+
+    p.draw = () => {
+        p.background(0);
+
+        // Update display distances and angles
+        for (let y = 0; y < node_grid.length; y++) {
+            for (let x = 0; x < node_grid[0].length; x++) {
+                let current_node = node_grid[y][x];
+                current_node.update_display_dist(p, 0.05);
+                current_node.update_display_vector_angle(p, 0.05);
+            }
+        }
+
+        // Draw heatmap
+        gfx_draw_heatmap(p, gfx_heatmap, node_grid, target, arg);
+
+        // Draw vector field
+        gfx_draw_agent_vectorfield(p, gfx_vectorfield, node_grid, target, arg);
+
+        // Update and draw agents
+        gfx_agents.clear();
+        for (let i = 0; i < agents.length; i++) {
+            agents[i].update(use_lerp, agent_speed, lerp_alpha);
+            agents[i].draw();
+        }
+
+        // Display layers
+        p.image(gfx_heatmap, 0, 0);
+        p.image(gfx_vectorfield, 0, 0);
+        p.image(gfx_agents, 0, 0);
+    }
+
+    p.mouseMoved = () => {
+        // Only respond to mouse events if mouse is over the canvas
+        if (p.mouseX < 0 || p.mouseX > arg.screen.w || p.mouseY < 0 || p.mouseY > arg.screen.h) return;
+        if (!is_in_screen(p.mouseX, p.mouseY, arg)) return;
+
+        let grid_x = p.floor(p.mouseX / arg.grid.tile_size);
+        let grid_y = p.floor(p.mouseY / arg.grid.tile_size);
+
+        target.x = grid_x;
+        target.y = grid_y;
+
+        reset_node_grid(node_grid);
+        djikstra_algorithm(node_grid, target, dist_arr.Euclidian, arg);
+        update_vectorfield_sobel(p, node_grid, arg);
+    }
+
+    p.mouseDragged = () => {
+        // Only respond to mouse events if mouse is over the canvas
+        if (p.mouseX < 0 || p.mouseX > arg.screen.w || p.mouseY < 0 || p.mouseY > arg.screen.h) return;
+
+        let x = p.floor(p.mouseX / arg.grid.tile_size);
+        let y = p.floor(p.mouseY / arg.grid.tile_size);
+
+        if (!is_in_grid(x, y, arg)) return;
+
+        let current_node = node_grid[y][x];
+
+        if (!is_dragging) {
+            wallpen_state = !current_node.isWall;
+            is_dragging = true;
+        }
+
+        current_node.isWall = wallpen_state;
+        reset_node_grid(node_grid);
+        djikstra_algorithm(node_grid, target, dist_arr.Euclidian, arg);
+        update_vectorfield_sobel(p, node_grid, arg);
+    }
+
+    p.mouseReleased = () => {
+        // Always handle mouse release to reset dragging state
+        if (is_dragging) is_dragging = false;
+    }
+
+    // Update vector field using Sobel operator
+    function update_vectorfield_sobel(p, node_grid, arg) {
+        for (let y = 0; y < arg.grid.h; y++) {
+            for (let x = 0; x < arg.grid.w; x++) {
+                let current_node = node_grid[y][x];
+                if (current_node.isWall) continue;
+
+                // Use Sobel operator from vectorfield_function.js
+                let gradient = kernel_sobel(node_grid, x, y, arg);
+
+                // Calculate angle (negative because we want to go opposite to gradient)
+                let angle = p.atan2(gradient.y, gradient.x) - p.PI / 2;
+                current_node.vector_angle = angle;
+            }
+        }
+    }
+
+    // Draw vector field
+    function gfx_draw_agent_vectorfield(p, gfx, node_grid, target, arg) {
+        gfx.clear();
+        gfx.strokeWeight(arg.arrow.stroke_weight);
+
+        gfx.push();
+        gfx.colorMode(p.HSB);
+
+        p.drawingContext.shadowOffsetX = 0;
+        p.drawingContext.shadowOffsetY = 0;
+        p.drawingContext.shadowBlur = 10;
+        p.drawingContext.shadowColor = 'gray';
+        gfx.translate(arg.grid.tile_size / 2, arg.grid.tile_size / 2);
+
+        for (let y = 0; y < arg.grid.h; y++) {
+            gfx.push();
+
+            for (let x = 0; x < arg.grid.w; x++) {
+                let current_node = node_grid[y][x];
+
+                if (current_node.isWall || (x == target.x && y == target.y)) {
+                    gfx.translate(arg.grid.tile_size, 0);
+                    continue;
+                }
+
+                let angle = current_node.display_vector_angle;
+                gfx.push();
+                gfx.stroke(0, 0, 255);
+                gfx.rotate(angle);
+                gfx_draw_arrow(p, gfx, arg);
+                gfx.pop();
+
+                gfx.translate(arg.grid.tile_size, 0);
+            }
+            gfx.pop();
+            gfx.translate(0, arg.grid.tile_size);
+        }
+        gfx.pop();
+    }
+}
+
+export default agent_motion_sketch;
