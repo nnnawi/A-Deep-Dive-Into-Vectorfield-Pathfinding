@@ -1,3 +1,5 @@
+import { is_in_grid } from './utils_function.js';
+
 var sobel_matrix = {
     x: [
         [-1, 0 ,1],
@@ -11,7 +13,7 @@ var sobel_matrix = {
     ]
 }
 
-function update_vectorfield(p, node_grid, arg){
+export function update_vectorfield(p, node_grid, arg){
     const node = math.parse('-log(x + 1)');
     const code = node.compile();
 
@@ -28,7 +30,7 @@ function update_vectorfield(p, node_grid, arg){
     }
 }
 
-function kernel_min(node_grid, x, y, arg){
+export function kernel_min(node_grid, x, y, arg){
     let min_dist = Infinity;
     let vector;
 
@@ -53,7 +55,7 @@ function kernel_min(node_grid, x, y, arg){
     return {x: vector[0], y: vector[1]};
 }
 
-function kernel_sobel(node_grid, x, y, arg){
+export function kernel_sobel(node_grid, x, y, arg){
     let g_x = 0;
     let g_y = 0;
 
@@ -80,7 +82,7 @@ function kernel_sobel(node_grid, x, y, arg){
     return {x: g_x, y: g_y};
 }
 
-function kernel_f_function(node_grid, x, y, math_code, arg){
+export function kernel_f_function(node_grid, x, y, math_code, arg){
     let vector = [0, 0];
 
     for(const neighbor_pos of neighbor_pos_arr){

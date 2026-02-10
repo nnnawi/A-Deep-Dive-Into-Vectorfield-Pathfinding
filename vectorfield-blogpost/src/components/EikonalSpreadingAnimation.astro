@@ -1,6 +1,6 @@
 ---
 // Eikonal Spreading Animation
-const { title = "Eikonal Spreading Animation" } = Astro.props;
+const { title = 'Eikonal Spreading Animation' } = Astro.props;
 ---
 
 <div class="p5-component">
@@ -13,13 +13,21 @@ const { title = "Eikonal Spreading Animation" } = Astro.props;
   // Initialize p5 instance with the sketch
   const initEikonalSpreadingAnimation = () => {
     if (typeof window !== 'undefined' && window.p5) {
-      new p5((p) => eikonal_spreading_animation_sketch(p, 'eikonal_spreading_animation_canva'));
+      new p5((p) =>
+        eikonal_spreading_animation_sketch(
+          p,
+          'eikonal_spreading_animation_canva'
+        )
+      );
     }
   };
 
   // Wait for p5 to be loaded
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initEikonalSpreadingAnimation);
+    document.addEventListener(
+      'DOMContentLoaded',
+      initEikonalSpreadingAnimation
+    );
   } else {
     initEikonalSpreadingAnimation();
   }

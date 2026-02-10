@@ -1,6 +1,6 @@
 ---
 // Sobel Heatmap Visualization
-const { title = "Sobel Heatmap Visualization" } = Astro.props;
+const { title = 'Sobel Heatmap Visualization' } = Astro.props;
 ---
 
 <div class="p5-component">
@@ -13,13 +13,18 @@ const { title = "Sobel Heatmap Visualization" } = Astro.props;
   // Initialize p5 instance with the sketch
   const initSobelHeatmapVisualization = () => {
     if (typeof window !== 'undefined' && window.p5) {
-      new p5((p) => sobel_heatmap_sketch(p, 'sobel_heatmap_visualization_canva'));
+      new p5((p) =>
+        sobel_heatmap_sketch(p, 'sobel_heatmap_visualization_canva')
+      );
     }
   };
 
   // Wait for p5 to be loaded
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initSobelHeatmapVisualization);
+    document.addEventListener(
+      'DOMContentLoaded',
+      initSobelHeatmapVisualization
+    );
   } else {
     initSobelHeatmapVisualization();
   }

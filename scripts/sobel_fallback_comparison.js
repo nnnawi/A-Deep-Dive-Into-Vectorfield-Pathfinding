@@ -1,3 +1,6 @@
+import { reset_node_grid } from './utils_function.js';
+import { gfx_draw_arrow } from './gfx_function.js';
+
 class node {
     constructor(x, y){
         this.isWall = false;

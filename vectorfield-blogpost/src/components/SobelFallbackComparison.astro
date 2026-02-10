@@ -1,6 +1,6 @@
 ---
 // Sobel Fallback Comparison Visualization
-const { title = "Sobel Fallback Comparison" } = Astro.props;
+const { title = 'Sobel Fallback Comparison' } = Astro.props;
 ---
 
 <div class="p5-component">
@@ -13,7 +13,9 @@ const { title = "Sobel Fallback Comparison" } = Astro.props;
   // Initialize p5 instance with the sketch
   const initSobelFallbackComparison = () => {
     if (typeof window !== 'undefined' && window.p5) {
-      new p5((p) => sobel_fallback_comparison_sketch(p, 'sobel_fallback_comparison_canva'));
+      new p5((p) =>
+        sobel_fallback_comparison_sketch(p, 'sobel_fallback_comparison_canva')
+      );
     }
   };
 

@@ -1,6 +1,6 @@
 ---
 // Minimum Neighbor Vector Field
-const { title = "Minimum Neighbor Vector Field" } = Astro.props;
+const { title = 'Minimum Neighbor Vector Field' } = Astro.props;
 ---
 
 <div class="p5-component">
@@ -13,7 +13,9 @@ const { title = "Minimum Neighbor Vector Field" } = Astro.props;
   // Initialize p5 instance with the sketch
   const initMinNeighborVectorfield = () => {
     if (typeof window !== 'undefined' && window.p5) {
-      new p5((p) => min_neighbor_vectorfield_sketch(p, 'min_neighbor_vf_canva'));
+      new p5((p) =>
+        min_neighbor_vectorfield_sketch(p, 'min_neighbor_vf_canva')
+      );
     }
   };
 

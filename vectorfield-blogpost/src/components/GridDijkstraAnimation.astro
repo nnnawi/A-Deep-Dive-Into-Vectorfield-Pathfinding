@@ -1,9 +1,17 @@
 ---
 // Grid Dijkstra Animation
-const { title = "Dijkstra Algorithm Animation" } = Astro.props;
+const { title = 'Dijkstra Algorithm Animation' } = Astro.props;
 ---
 
 <div class="p5-component">
+  <div class="controls" style="display: flex; gap: 10px; margin-bottom: 10px;">
+    <button id="startBtn" style="padding: 5px 10px;"
+      >Start Dijkstra Algorithm</button
+    >
+    <button id="mouseModeBtn" style="padding: 5px 10px;"
+      >Toggle Free Mouse Mode</button
+    >
+  </div>
   <div id="grid_djikstra_animation_canva"></div>
 </div>
 
@@ -13,7 +21,9 @@ const { title = "Dijkstra Algorithm Animation" } = Astro.props;
   // Initialize p5 instance with the sketch
   const initGridDijkstraAnimation = () => {
     if (typeof window !== 'undefined' && window.p5) {
-      new p5((p) => grid_djikstra_animation_sketch(p, 'grid_djikstra_animation_canva'));
+      new p5((p) =>
+        grid_djikstra_animation_sketch(p, 'grid_djikstra_animation_canva')
+      );
     }
   };
 

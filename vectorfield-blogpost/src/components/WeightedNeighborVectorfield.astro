@@ -1,9 +1,30 @@
 ---
 // Weighted Neighbor Vector Field
-const { title = "Weighted Neighbor Vector Field" } = Astro.props;
+const { title = 'Weighted Neighbor Vector Field' } = Astro.props;
 ---
 
 <div class="p5-component">
+  <div class="controls">
+    <div class="weight-function-controls">
+      <label>
+        <input
+          type="radio"
+          name="weight_function"
+          value="-log(x + 1)"
+          checked
+        /> -log(x + 1)
+      </label>
+      <label>
+        <input type="radio" name="weight_function" value="-x" /> -x
+      </label>
+      <label>
+        <input type="radio" name="weight_function" value="-x*x" /> -x²
+      </label>
+      <label>
+        <input type="radio" name="weight_function" value="1/x" /> 1/x
+      </label>
+    </div>
+  </div>
   <div id="weighted_neighbor_vf_canva"></div>
 </div>
 
@@ -13,13 +34,18 @@ const { title = "Weighted Neighbor Vector Field" } = Astro.props;
   // Initialize p5 instance with the sketch
   const initWeightedNeighborVectorfield = () => {
     if (typeof window !== 'undefined' && window.p5) {
-      new p5((p) => weighted_neighbor_vectorfield_sketch(p, 'weighted_neighbor_vf_canva'));
+      new p5((p) =>
+        weighted_neighbor_vectorfield_sketch(p, 'weighted_neighbor_vf_canva')
+      );
     }
   };
 
   // Wait for p5 to be loaded
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initWeightedNeighborVectorfield);
+    document.addEventListener(
+      'DOMContentLoaded',
+      initWeightedNeighborVectorfield
+    );
   } else {
     initWeightedNeighborVectorfield();
   }

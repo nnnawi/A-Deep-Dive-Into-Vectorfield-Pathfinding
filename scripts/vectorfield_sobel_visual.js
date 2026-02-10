@@ -1,3 +1,8 @@
+import { is_in_screen, is_in_grid } from './utils_function.js';
+import { gfx_draw_grid, gfx_draw_heatmap, gfx_draw_vectorfield } from './gfx_function.js';
+import { eikonal_solver } from './solver_function.js';
+import { update_vectorfield } from './vectorfield_function.js';
+
 class node {
     constructor(x, y){
         this.isWall = false;

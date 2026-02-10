@@ -1,4 +1,6 @@
-function djisktra_algorithm_step(open_list, node_grid, dist_arr, arg){
+import { is_in_grid, u_angle_lerp } from './utils_function.js';
+
+export function djisktra_algorithm_step(open_list, node_grid, dist_arr, arg){
 
     //Find node w/ the minimum distance in the open_list
     let minDistIndex = 0;
@@ -40,7 +42,7 @@ function djisktra_algorithm_step(open_list, node_grid, dist_arr, arg){
     }
 }
 
-function djikstra_algorithm(node_grid, target, dist_arr, arg){
+export function djikstra_algorithm(node_grid, target, dist_arr, arg){
     let target_node = node_grid[target.y][target.x];
     target_node.dist = 0;
     let open_list = [target_node];
@@ -50,7 +52,7 @@ function djikstra_algorithm(node_grid, target, dist_arr, arg){
     }
 }
 
-function eikonal_solver(NODE_grid, target, options = {}) {
+export function eikonal_solver(NODE_grid, target, options = {}) {
     const rows = NODE_grid.length;
     const cols = NODE_grid[0].length;
     
@@ -184,7 +186,7 @@ const neighbor_pos_arr = [
     [-1,1], [0,1], [1,1]
 ]
 
-class node {
+export class node {
     constructor(x, y){
         this.isWall = false;
         this.dist = 999;

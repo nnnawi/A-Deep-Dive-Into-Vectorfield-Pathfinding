@@ -1,4 +1,4 @@
-function gfx_draw_grid(p, gfx, arg){
+export function gfx_draw_grid(p, gfx, arg){
     gfx.colorMode(p.RGB);
     gfx.stroke(arg.grid.stroke);
     gfx.strokeWeight(arg.grid.stroke_weight);
@@ -16,7 +16,7 @@ function gfx_draw_grid(p, gfx, arg){
     }
 }
 
-function gfx_draw_heatmap(p, gfx, node_grid, target, arg){
+export function gfx_draw_heatmap(p, gfx, node_grid, target, arg){
     gfx.clear();
     gfx.colorMode(p.HSB);
 
@@ -42,7 +42,7 @@ function gfx_draw_heatmap(p, gfx, node_grid, target, arg){
     gfx.ellipse((target.x + .5) * arg.grid.tile_size, (target.y + .5) * arg.grid.tile_size, arg.grid.tile_size, arg.grid.tile_size);
 }
 
-function gfx_draw_vectorfield(p, gfx, node_grid, target, arg){
+export function gfx_draw_vectorfield(p, gfx, node_grid, target, arg){
     gfx.clear();
 
     //gfx.stroke(arg.arrow.stroke, arg.arrow.stroke, arg.arrow.stroke, 100);
@@ -85,7 +85,7 @@ function gfx_draw_vectorfield(p, gfx, node_grid, target, arg){
     gfx.pop();
 }
 
-function gfx_draw_arrow(p, gfx, arg){
+export function gfx_draw_arrow(p, gfx, arg){
     gfx.push();
     gfx.line(0,0,0,arg.arrow.main_len);
     gfx.translate(0,arg.arrow.main_len);

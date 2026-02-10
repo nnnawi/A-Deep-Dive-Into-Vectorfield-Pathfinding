@@ -23,17 +23,21 @@ vectorfield-blogpost/
 ## Features
 
 ### 1. Custom Typography
+
 - **Body text**: Merriweather (serif) for comfortable reading
 - **Headings**: Inter (sans-serif) for modern, clean headers
 - **Font size**: 18px base for optimal readability
 
 ### 2. LaTeX Math Support
+
 Write inline math with single dollar signs:
+
 ```markdown
 The equation $E = mc^2$ shows the relationship...
 ```
 
 Write display equations with double dollar signs:
+
 ```markdown
 $$
 \mathbf{F}(x, y) = P(x,y)\mathbf{i} + Q(x,y)\mathbf{j}
@@ -41,7 +45,9 @@ $$
 ```
 
 ### 3. Interactive p5.js Components
+
 Each visualization is a self-contained Astro component with:
+
 - p5.js canvas for rendering
 - Interactive controls (sliders, checkboxes)
 - Responsive layout
@@ -55,7 +61,7 @@ Here's the pattern for creating interactive visualizations:
 ```astro
 ---
 // Component props
-const { title = "My Visualization" } = Astro.props;
+const { title = 'My Visualization' } = Astro.props;
 ---
 
 <div class="p5-component">
@@ -64,8 +70,17 @@ const { title = "My Visualization" } = Astro.props;
     <!-- Controls sidebar -->
     <div class="controls">
       <div class="control-group">
-        <label for="myParam">Parameter: <span id="valueDisplay">1.0</span></label>
-        <input type="range" id="myParam" min="0" max="2" step="0.1" value="1.0" />
+        <label for="myParam"
+          >Parameter: <span id="valueDisplay">1.0</span></label
+        >
+        <input
+          type="range"
+          id="myParam"
+          min="0"
+          max="2"
+          step="0.1"
+          value="1.0"
+        />
       </div>
 
       <div class="control-group">
@@ -204,11 +219,13 @@ Note: LaTeX math syntax (`$...$` and `$$...$$`) only works in MDX files.
 ## Development
 
 ### Setup
+
 ```bash
 npm install
 ```
 
 ### Run Development Server
+
 ```bash
 npm run dev
 ```
@@ -216,11 +233,13 @@ npm run dev
 Visit `http://localhost:4321` to see your blog post.
 
 ### Build for Production
+
 ```bash
 npm run build
 ```
 
 ### Preview Production Build
+
 ```bash
 npm run preview
 ```
@@ -228,6 +247,7 @@ npm run preview
 ## Tips and Best Practices
 
 ### Math Equations
+
 - Use `$...$` for inline math
 - Use `$$...$$` for display equations
 - Common symbols: `\alpha, \beta, \nabla, \partial, \int, \sum`
@@ -235,6 +255,7 @@ npm run preview
 - Vectors: `\mathbf{v}` for bold vectors
 
 ### p5.js Visualizations
+
 - Keep canvas size around 600x400 for good balance
 - Use 250px width for control sidebars
 - Add responsive styles for mobile (`@media`)
@@ -242,12 +263,14 @@ npm run preview
 - Clean up with `p.remove()` if recreating sketches
 
 ### Performance
+
 - Limit particle count to 100-500 for smooth animation
 - Use `p.background()` each frame to clear canvas
 - Avoid heavy computations in `draw()` loop
 - Consider using `p.noLoop()` and `p.redraw()` for static visualizations
 
 ### Styling
+
 - Follow the existing color scheme (primary: #007acc)
 - Use Merriweather for body text
 - Use Inter for headings
@@ -264,12 +287,18 @@ Each example demonstrates different interaction patterns and visualization techn
 ## Customization
 
 ### Change Fonts
+
 Edit [Layout.astro](src/layouts/Layout.astro) Google Fonts import:
+
 ```html
-<link href="https://fonts.googleapis.com/css2?family=YourFont&display=swap" rel="stylesheet">
+<link
+  href="https://fonts.googleapis.com/css2?family=YourFont&display=swap"
+  rel="stylesheet"
+/>
 ```
 
 Update CSS variables:
+
 ```css
 :root {
   --font-body: 'YourFont', serif;
@@ -278,7 +307,9 @@ Update CSS variables:
 ```
 
 ### Change Colors
+
 Update CSS variables in [Layout.astro](src/layouts/Layout.astro):
+
 ```css
 :root {
   --color-primary: #007acc;

@@ -1,60 +1,115 @@
-
+import AgentMotionVectorfield from './AgentMotionVectorfield.astro';
 import EikonalSpreadingAnimation from './EikonalSpreadingAnimation.astro';
- 
+import GraphGridRelationAnim from './GraphGridRelationAnim.astro';
+import PathfindingDefinitionAnim from './PathfindingDefinitionAnim.astro';
+import GraphDefinitionAnim from './GraphDefinitionAnim.astro';
+import MinNeighborVectorfield from './MinNeighborVectorfield.astro';
+import VectorfieldSobelVisual from './VectorfieldSobelVisual.astro';
+import VfHeatmapDistanceMatrix from './VfHeatmapDistanceMatrix.astro';
+import VfHeatmapEikonal from './VfHeatmapEikonal.astro';
+import WeightedNeighborVectorfield from './WeightedNeighborVectorfield.astro';
+
 # A Deep Dive into Goal-based Vector Field Pathfinding
 
 ## Introduction
 
-Back in 2018, while building a clone of the Wii Play [tank game](https://nintendo.fandom.com/wiki/Tanks!) ,  I ran into my first real pathfinding challenge. I needed a way for multiple enemy agents to chase the player around while dodging walls. After digging into the topic, I came across goal-based vector pathfinding (or just Vector Field Pathfinding - VFP). And it just clicked - it did exactly what I needed, but in a way that felt more visual & intuitive than A\* or Dijkstra. I liked it so much that I even made a video about it in 2020 — just to share how cool and practical this approach really is.
+Back in 2018, while building a clone of [Tanks!](https://nintendo.fandom.com/wiki/Tanks!),
+I ran into my first real pathfinding challenge. I needed a way for multiple enemy tanks to chase the player around while dodging walls.
+After digging into the topic, I came across **goal-based vector pathfinding** _(or simply Vector Field Pathfinding - VFP)_.
+And it just clicked - it did exactly what I needed, but in a way that felt more visual & intuitive than $$A^*$$ or Dijkstra.
+I liked it so much that I even made a video about it in 2020 — just to share how cool and practical this approach really is.
 
-<iframe 
-  width="560" 
-  height="315" 
-    src="https://www.youtube.com/embed/ZJZu3zLMYAc?start=1" 
-  title="YouTube video player" 
-  frameborder="0" 
-  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-  allowfullscreen>
-</iframe>
+<iframe
+  width="560"
+  height="315"
+  src="https://www.youtube.com/embed/ZJZu3zLMYAc?controls=0
+    &rel=0
+    &modestbranding=1
+    &iv_load_policy=3
+    &fs=0
+    &disablekb=1
+    &playsinline=1"
+  frameborder="0"
+  allow="autoplay; encrypted-media"
+  allowfullscreen
+></iframe>
 
-The video ended up doing very well for a niche subject! It sparked a lot of great discussions in the comments — people sharing alternative approaches, asking smart questions, or diving deeper into the method. 
+The video ended up doing very well for a niche subject! It sparked a lot of great discussions in the comments — _people sharing alternative approaches, asking smart questions, or diving deeper into the method_.
 
 But looking back, my younger self definitely made a few mistakes. There were some unverified claims, oversimplified explanations, and a lot I just didn’t know back then. Now, more than six years later, I finally decided to revisit this topic — something I’d been wanting to do for a long time, especially as the comments kept rolling in over the years.
 
-That’s what this blogpost is: a deep dive into vector field pathfinding. How it works, where it fits in the broader landscape of pathfinding algorithms, the many ways you can build and tweak it to fit different needs, and when it really shines compared to more classic approaches.
+This is what this blogpost is about: a deep dive into vector field pathfinding. <br/>
+How it works, the many ways you can build and tweak it to fit different needs and where it fits in the broader landscape of pathfinding algorithms.
+
+<br />
 
 ## What is pathfinding ?
 
-Before jumping straight into VFP (Vector Field Pathfinding), it’s worth taking a moment to remind ourselves **what pathfinding really is ?**—where it comes from, and why it exists in the first place.
+Before jumping straight into VFP _(Vector Field Pathfinding)_, it’s worth taking a moment to remind ourselves **what pathfinding really is ?** — where it comes from, and why it exists in the first place.
 
 ### Defining the problem _(a bit of graph theory)_:
 
 At its core, pathfinding is a **graph theory** problem. A graph consists of a set of **vertices** $V$ connected by a set of **edges** $E$ _(ie. pairs of vertices)_.
 Graphs can also be weighted, meaning each edge has an associated value _(or weight)_ that can represent **a distance, a cost, or any other metrics**.
 
-<div style="display: flex; justify-content: center">
-    <div style="display: flex; flex-direction: row; align-items: center; gap: 1rem;">
-        <div>
-            $$
-            \begin{align*}
-            &\text{Let } G = (V,E) \text{ be a graph with:} \\[10pt]
-            & \quad V = \text{Set of Vertices} = \{X_1, X_2, X_3, X_4, X_5 \} \\[10pt]
-            & \quad E = \text{Set of Edges} = \{
-                (X_1,X_4),
-                (X_1,X_3), \\
-                & \qquad (X_1,X_5),
-                (X_5,X_3),
-                ...
-            \}
-            \end{align*}
-            $$
-        </div>
-        <div style="display: flex; flex-direction: column; align-items: center"> 
-            <div id="interactive_graph_canva"></div>
-            <span> A graphic representation of $G$ </span>
-        </div>
+<div class="latex-animation-container">
+    <div>
+        $$
+        \begin{align*}
+        &\text{Let } G = (V,E) \text{ be a graph with:} \\[10pt]
+        & V = \text{Set of Vertices} = \{X_1, X_2, X_3, ... \} \\[10pt]
+        & E = \text{Set of Edges} = \{
+            (X_1,X_4),
+            (X_1,X_3), \\
+            & (X_1,X_5),
+            (X_5,X_3),
+            ...
+        \}
+        \end{align*}
+        $$
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: center"> 
+        <GraphDefinitionAnim/>
+        <span> The graph representation of $$G$$ </span>
     </div>
 </div>
 
+We can thus define **pathfinding** as finding the **shortest path between two vertices of a graph**,
+or more precisely the path $P^*$ between two vertices $A, B \in V$ of a graph $G = (V,E)$ such that the sum of the weights of its constituent edges is minimized.
 
-<EikonalSpreadingAnimation/>
+<div class="latex-animation-container">
+  <div style="display: flex; flex-direction: column"> 
+      <span>
+      $$
+      P^* = \arg\min_{P \in \mathcal{P}(A, B)} \sum_{(x, y) \in P} w(x, y)
+      $$
+      </span>
+      <div style="font-size: 14px">
+      $$
+      \begin{align*}
+      &\text{Where : }\\[7pt]
+      & \quad \mathcal{P}(A,B) = \text{set of all possible paths from A to B}\\[3pt]
+      & \quad P = \text{a path from A to B } \text{(defined as a set of edges)}\\[3pt]
+      & \quad (x,y) = \text{an edge defined by its two constituent nodes.}\\[3pt]
+      & \quad w(x,y) = \text{weight of the $(x,y)$ edge.}
+      \end{align*}
+      $$
+      </div>
+  </div>
+  <div style="display: flex; flex-direction: column; align-items: center"> 
+      <PathfindingDefinitionAnim/>
+      <span> Hover to reveal the shortest path</span>
+  </div>
+</div>
+
+
+### Setting up our pathfinding environment :
+
+In this post, we'll explore a specific type of graph: the **8-neighbor grid graph**, _(also known as a [King's graph](https://en.wikipedia.org/wiki/King%27s_graph))_.
+We can think of it as **a 2D grid** where each tile connects to all its 8 surrounding neighbors—like how a king moves in chess.
+
+This graph is undirected, meaning connections flow both ways between tiles and
+each connection (edge) carries **a weight determined by a distance kernel**—a predefined matrix that might, for instance, make diagonal connections stronger than horizontal or vertical ones.
+ 
+<GraphGridRelationAnim/>
+

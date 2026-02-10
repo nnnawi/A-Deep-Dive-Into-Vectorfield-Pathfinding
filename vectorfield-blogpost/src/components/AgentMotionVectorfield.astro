@@ -1,9 +1,66 @@
 ---
 // Agent Motion in Vector Field
-const { title = "Agent Motion Vector Field" } = Astro.props;
+const { title = 'Agent Motion Vector Field' } = Astro.props;
 ---
 
 <div class="p5-component">
+  <div class="controls">
+    <div
+      class="agent-controls"
+      style="display: flex; flex-direction: column; gap: 10px; margin: 10px 0;"
+    >
+      <div style="display: flex; gap: 20px; align-items: center;">
+        <div>
+          <strong>Motion Type:</strong>
+          <label style="margin-left: 10px;">
+            <input type="radio" name="agent_lerp" value="normal" checked /> Normal
+          </label>
+          <label style="margin-left: 10px;">
+            <input type="radio" name="agent_lerp" value="lerp" /> LERP
+          </label>
+        </div>
+      </div>
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <strong>Agent Speed:</strong>
+        <input
+          type="range"
+          id="agent-speed-slider"
+          min="0.5"
+          max="5"
+          step="0.1"
+          value="2.0"
+          style="width: 200px;"
+        />
+        <span id="agent-speed-value">2.0</span>
+      </div>
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <strong>Number of Particles:</strong>
+        <input
+          type="range"
+          id="agent-count-slider"
+          min="1"
+          max="40"
+          step="1"
+          value="10"
+          style="width: 200px;"
+        />
+        <span id="agent-count-value">10</span>
+      </div>
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <strong>LERP Alpha:</strong>
+        <input
+          type="range"
+          id="agent-lerp-alpha-slider"
+          min="0.01"
+          max="1"
+          step="0.01"
+          value="0.15"
+          style="width: 200px;"
+        />
+        <span id="agent-lerp-alpha-value">0.15</span>
+      </div>
+    </div>
+  </div>
   <div id="agent_motion_canva"></div>
 </div>
 

@@ -1,3 +1,7 @@
+import { is_in_grid } from './utils_function.js';
+import { gfx_draw_grid } from './gfx_function.js';
+import { djikstra_algorithm } from './solver_function.js';
+
 class node {
     constructor(x, y){
         this.isWall = false;

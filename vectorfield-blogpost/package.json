@@ -6,12 +6,17 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "format": "prettier --write ."
   },
   "dependencies": {
     "@astrojs/mdx": "^4.3.13",
     "astro": "^5.17.1",
     "rehype-mathjax": "^7.1.0",
     "remark-math": "^6.0.0"
+  },
+  "devDependencies": {
+    "prettier": "^3.8.1",
+    "prettier-plugin-astro": "^0.14.1"
   }
 }

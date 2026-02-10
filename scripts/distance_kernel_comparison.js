@@ -1,3 +1,5 @@
+import { djikstra_algorithm } from './solver_function.js';
+
 class node {
     constructor(x, y){
         this.isWall = false;

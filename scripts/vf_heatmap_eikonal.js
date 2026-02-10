@@ -1,3 +1,7 @@
+import { is_in_grid, reset_node_grid, is_in_screen } from './utils_function.js';
+import { gfx_draw_grid, gfx_draw_heatmap } from './gfx_function.js';
+import { eikonal_solver } from './solver_function.js';
+
 class node {
     constructor(x, y){
         this.isWall = false;
