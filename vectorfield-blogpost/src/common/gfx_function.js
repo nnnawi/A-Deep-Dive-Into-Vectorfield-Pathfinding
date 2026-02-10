@@ -30,7 +30,7 @@ export function gfx_draw_heatmap(p, gfx, node_grid, target, arg, mode = 'hue', c
             let current_node = node_grid[y][x];
             
             if (mode === 'hue') {
-                gfx.fill(current_node.display_dist * colorIntensity, 255, 100);
+                gfx.fill((current_node.display_dist * colorIntensity) % 360, 255, 100);
             } else {
                 let brightness = p.map(current_node.display_dist, 0, colorIntensity, 255, 0); // Closer = whiter, further = darker
                 gfx.fill(brightness);

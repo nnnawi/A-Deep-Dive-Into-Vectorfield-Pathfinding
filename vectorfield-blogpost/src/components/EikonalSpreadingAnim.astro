@@ -1,0 +1,559 @@
+---
+// Eikonal Spreading Animation
+---
+
+<div class="container">
+  <div id="eikonalSpreadingAnim"></div>
+  <div class="controls">
+    <span>Animation Progress</span>
+    <div class="slider-wrapper">
+      <input
+        type="range"
+        id="time-slider"
+        min="0"
+        max="100"
+        value="0"
+        step="1"
+      />
+      <div class="value-display">Step: <span id="time-value">0</span></div>
+    </div>
+
+    <span>Utility</span>
+    <div class="button-group">
+      <button id="change-seed-btn">Change Wall Seed</button>
+      <button id="erase-all-btn">Erase All Walls</button>
+    </div>
+
+    <span>Visualization Mode</span>
+    <div class="mode-selector-container">
+      <button class="mode-btn" data-mode="hue">Hue heatmap</button>
+      <button class="mode-btn" data-mode="grayscale">Grayscale</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { node } from '../common/solver_function';
+
+  const arg = {
+    screen: {
+      w: 600,
+      h: 500,
+    },
+    grid: {
+      tile_size: 10,
+      w: 0,
+      h: 0,
+    },
+  };
+
+  var node_grid;
+  var gfx_heatmap;
+  var target = { x: 0, y: 0 };
+  var timeSteps = [];
+  var currentTimeStep = 0;
+  var maxTimeSteps = 0;
+  var colorScheme = 'hue';
+
+  var is_dragging = false;
+  var wallpen_state = true;
+
+  const sketch = (p) => {
+    p.setup = () => {
+      let canvas = p.createCanvas(arg.screen.w, arg.screen.h);
+      canvas.parent('eikonalSpreadingAnim');
+
+      arg.grid.w = p.floor(arg.screen.w / arg.grid.tile_size);
+      arg.grid.h = p.floor(arg.screen.h / arg.grid.tile_size);
+
+      node_grid = new Array(arg.grid.h)
+        .fill()
+        .map((_, y) =>
+          new Array(arg.grid.w).fill().map((_, x) => new node(x, y))
+        );
+
+      generateRandomWalls();
+      target.x = p.floor(arg.grid.w / 2);
+      target.y = p.floor(arg.grid.h / 2);
+      node_grid[target.y][target.x].isWall = false;
+
+      gfx_heatmap = p.createGraphics(arg.screen.w, arg.screen.h);
+      solveEikonalWithTimeSteps();
+      updateHeatmapFromTimeStep();
+
+      setupUIListeners();
+    };
+
+    function setupUIListeners() {
+      const timeSlider = document.getElementById('time-slider');
+      const timeValue = document.getElementById('time-value');
+      const changeSeedBtn = document.getElementById('change-seed-btn');
+      const eraseAllBtn = document.getElementById('erase-all-btn');
+      const modeButtons = document.querySelectorAll('.mode-btn');
+
+      timeSlider.addEventListener('input', (e) => {
+        const value = parseInt(e.target.value);
+        currentTimeStep = Math.floor((value / 100) * (maxTimeSteps - 1));
+        timeValue.textContent = currentTimeStep;
+        updateHeatmapFromTimeStep();
+      });
+
+      changeSeedBtn.addEventListener('click', () => {
+        resetGrid();
+        generateRandomWalls();
+        target.x = p.floor(arg.grid.w / 2);
+        target.y = p.floor(arg.grid.h / 2);
+        node_grid[target.y][target.x].isWall = false;
+        reSolveAndResetUI();
+      });
+
+      eraseAllBtn.addEventListener('click', () => {
+        resetGrid();
+        reSolveAndResetUI();
+      });
+
+      modeButtons.forEach((btn) => {
+        if (btn.getAttribute('data-mode') === colorScheme)
+          btn.classList.add('active');
+        btn.addEventListener('click', () => {
+          colorScheme = btn.getAttribute('data-mode');
+          modeButtons.forEach((b) => b.classList.remove('active'));
+          btn.classList.add('active');
+          updateHeatmapFromTimeStep();
+        });
+      });
+    }
+
+    function resetGrid() {
+      for (let y = 0; y < arg.grid.h; y++) {
+        for (let x = 0; x < arg.grid.w; x++) {
+          node_grid[y][x].isWall = false;
+        }
+      }
+    }
+
+    function reSolveAndResetUI() {
+      solveEikonalWithTimeSteps();
+      currentTimeStep = 0;
+      const timeSlider = document.getElementById('time-slider');
+      const timeValue = document.getElementById('time-value');
+      timeSlider.value = 0;
+      timeValue.textContent = '0';
+      updateHeatmapFromTimeStep();
+    }
+
+    function generateRandomWalls() {
+      const minClearRadius = 8;
+      const centerX = arg.grid.w / 2;
+      const centerY = arg.grid.h / 2;
+      const minWallSpacing = 7;
+
+      let verticalWallPositions = [];
+      let horizontalWallPositions = [];
+
+      const numVerticalWalls = 4 + Math.floor(Math.random() * 3);
+      for (let i = 0; i < numVerticalWalls; i++) {
+        let x;
+        let attempts = 0;
+        do {
+          x = Math.floor(Math.random() * arg.grid.w);
+          attempts++;
+        } while (
+          attempts < 50 &&
+          verticalWallPositions.some(
+            (pos) => Math.abs(pos - x) < minWallSpacing
+          )
+        );
+
+        if (attempts >= 50) continue;
+        verticalWallPositions.push(x);
+
+        const startY = Math.floor(Math.random() * arg.grid.h * 0.2);
+        const height = Math.floor(
+          arg.grid.h * 0.4 + Math.random() * arg.grid.h * 0.4
+        );
+
+        for (let y = startY; y < Math.min(startY + height, arg.grid.h); y++) {
+          const dist = Math.sqrt(
+            Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2)
+          );
+          if (dist > minClearRadius) {
+            node_grid[y][x].isWall = true;
+          }
+        }
+      }
+
+      const numHorizontalWalls = 4 + Math.floor(Math.random() * 3);
+      for (let i = 0; i < numHorizontalWalls; i++) {
+        let y;
+        let attempts = 0;
+        do {
+          y = Math.floor(Math.random() * arg.grid.h);
+          attempts++;
+        } while (
+          attempts < 50 &&
+          horizontalWallPositions.some(
+            (pos) => Math.abs(pos - y) < minWallSpacing
+          )
+        );
+
+        if (attempts >= 50) continue;
+        horizontalWallPositions.push(y);
+
+        const startX = Math.floor(Math.random() * arg.grid.w * 0.2);
+        const width = Math.floor(
+          arg.grid.w * 0.4 + Math.random() * arg.grid.w * 0.4
+        );
+
+        for (let x = startX; x < Math.min(startX + width, arg.grid.w); x++) {
+          const dist = Math.sqrt(
+            Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2)
+          );
+          if (dist > minClearRadius) {
+            node_grid[y][x].isWall = true;
+          }
+        }
+      }
+    }
+
+    function solveEikonalWithTimeSteps() {
+      const rows = node_grid.length;
+      const cols = node_grid[0].length;
+      let distanceField = Array(rows)
+        .fill()
+        .map(() => Array(cols).fill(Infinity));
+      let accepted = Array(rows)
+        .fill()
+        .map(() => Array(cols).fill(false));
+
+      distanceField[target.y][target.x] = 0;
+      timeSteps = [];
+      timeSteps.push(JSON.parse(JSON.stringify(distanceField)));
+
+      let heap = [{ x: target.x, y: target.y, dist: 0 }];
+
+      function getSpeed(x, y) {
+        if (x < 0 || y < 0 || x >= cols || y >= rows) return 0;
+        const cell = node_grid[y][x];
+        if (cell.isWall) return 0;
+        return 1;
+      }
+
+      function solveEikonalUpdate(x, y) {
+        if (y === target.y && x === target.x) return 0;
+        const speed = getSpeed(x, y);
+        if (speed === 0) return Infinity;
+
+        let minX = Infinity;
+        if (x > 0 && accepted[y][x - 1])
+          minX = Math.min(minX, distanceField[y][x - 1]);
+        if (x < cols - 1 && accepted[y][x + 1])
+          minX = Math.min(minX, distanceField[y][x + 1]);
+
+        let minY = Infinity;
+        if (y > 0 && accepted[y - 1][x])
+          minY = Math.min(minY, distanceField[y - 1][x]);
+        if (y < rows - 1 && accepted[y + 1][x])
+          minY = Math.min(minY, distanceField[y + 1][x]);
+
+        if (minX > minY) [minX, minY] = [minY, minX];
+
+        const h = 1.0;
+        if (minX === Infinity) return Infinity;
+        if (minY === Infinity) return minX + h / speed;
+
+        const simpleUpdate = minX + h / speed;
+        if (simpleUpdate <= minY) return simpleUpdate;
+
+        const a = 2;
+        const b = -2 * (minX + minY);
+        const c = minX * minX + minY * minY - (h / speed) * (h / speed);
+        const discriminant = b * b - 4 * a * c;
+
+        if (discriminant < 0) return minX + h / speed;
+        return (-b + Math.sqrt(discriminant)) / (2 * a);
+      }
+
+      function getNeighbors(x, y) {
+        const neighbors = [];
+        const directions = [
+          [0, -1],
+          [0, 1],
+          [-1, 0],
+          [1, 0],
+        ];
+        for (let [dx, dy] of directions) {
+          const nx = x + dx;
+          const ny = y + dy;
+          if (nx >= 0 && nx < cols && ny >= 0 && ny < rows) {
+            if (!node_grid[ny][nx].isWall && !accepted[ny][nx]) {
+              neighbors.push({ x: nx, y: ny });
+            }
+          }
+        }
+        return neighbors;
+      }
+
+      let processedCount = 0;
+      const captureInterval = Math.max(1, Math.floor((rows * cols) / 200));
+
+      while (heap.length > 0) {
+        heap.sort((a, b) => a.dist - b.dist);
+        const current = heap.shift();
+        if (accepted[current.y][current.x]) continue;
+
+        accepted[current.y][current.x] = true;
+        processedCount++;
+
+        const neighbors = getNeighbors(current.x, current.y);
+        for (let neighbor of neighbors) {
+          const newDist = solveEikonalUpdate(neighbor.x, neighbor.y);
+          if (newDist < distanceField[neighbor.y][neighbor.x]) {
+            distanceField[neighbor.y][neighbor.x] = newDist;
+            const existing = heap.findIndex(
+              (item) => item.x === neighbor.x && item.y === neighbor.y
+            );
+            if (existing >= 0) {
+              heap[existing].dist = newDist;
+            } else {
+              heap.push({ x: neighbor.x, y: neighbor.y, dist: newDist });
+            }
+          }
+        }
+
+        if (processedCount % captureInterval === 0) {
+          timeSteps.push(JSON.parse(JSON.stringify(distanceField)));
+        }
+      }
+
+      timeSteps.push(JSON.parse(JSON.stringify(distanceField)));
+      maxTimeSteps = timeSteps.length;
+    }
+
+    function updateHeatmapFromTimeStep() {
+      if (currentTimeStep >= timeSteps.length) {
+        currentTimeStep = timeSteps.length - 1;
+      }
+      const distanceField = timeSteps[currentTimeStep];
+      for (let y = 0; y < arg.grid.h; y++) {
+        for (let x = 0; x < arg.grid.w; x++) {
+          node_grid[y][x].dist = distanceField[y][x];
+          node_grid[y][x].display_dist = distanceField[y][x];
+        }
+      }
+      drawHeatmap();
+    }
+
+    function drawHeatmap() {
+      gfx_heatmap.clear();
+      let maxDist = 0;
+      for (let y = 0; y < arg.grid.h; y++) {
+        for (let x = 0; x < arg.grid.w; x++) {
+          const dist = node_grid[y][x].display_dist;
+          if (dist !== Infinity && !node_grid[y][x].isWall) {
+            maxDist = Math.max(maxDist, dist);
+          }
+        }
+      }
+
+      for (let y = 0; y < arg.grid.h; y++) {
+        for (let x = 0; x < arg.grid.w; x++) {
+          let current_node = node_grid[y][x];
+          if (current_node.isWall) {
+            gfx_heatmap.colorMode(p.RGB);
+            gfx_heatmap.fill(50);
+          } else if (current_node.dist === Infinity) {
+            gfx_heatmap.colorMode(p.RGB);
+            gfx_heatmap.fill(30);
+          } else {
+            const normalizedDist =
+              maxDist > 0 ? current_node.dist / maxDist : 0;
+            if (colorScheme === 'grayscale') {
+              gfx_heatmap.colorMode(p.RGB);
+              const brightness = Math.floor(255 * (1 - normalizedDist));
+              gfx_heatmap.fill(brightness);
+            } else {
+              gfx_heatmap.colorMode(p.HSB);
+              const hue = 240 - normalizedDist * 240;
+              gfx_heatmap.fill(hue, 100, 90);
+            }
+          }
+          gfx_heatmap.noStroke();
+          gfx_heatmap.rect(
+            x * arg.grid.tile_size,
+            y * arg.grid.tile_size,
+            arg.grid.tile_size,
+            arg.grid.tile_size
+          );
+        }
+      }
+
+      gfx_heatmap.colorMode(p.RGB);
+      gfx_heatmap.fill(255, 255, 255);
+      gfx_heatmap.ellipse(
+        (target.x + 0.5) * arg.grid.tile_size,
+        (target.y + 0.5) * arg.grid.tile_size,
+        arg.grid.tile_size * 2,
+        arg.grid.tile_size * 2
+      );
+    }
+
+    function handleWallDrawing() {
+      const gridX = p.floor(p.mouseX / arg.grid.tile_size);
+      const gridY = p.floor(p.mouseY / arg.grid.tile_size);
+
+      if (
+        gridX >= 0 &&
+        gridX < arg.grid.w &&
+        gridY >= 0 &&
+        gridY < arg.grid.h
+      ) {
+        if (gridX === target.x && gridY === target.y) return;
+
+        node_grid[gridY][gridX].isWall = wallpen_state;
+
+        // Update heatmap visually immediate
+        drawHeatmap();
+      }
+    }
+
+    p.draw = () => {
+      p.image(gfx_heatmap, 0, 0);
+    };
+
+    p.mousePressed = () => {
+      if (
+        p.mouseX < 0 ||
+        p.mouseX > arg.screen.w ||
+        p.mouseY < 0 ||
+        p.mouseY > arg.screen.h
+      )
+        return;
+
+      let x = p.floor(p.mouseX / arg.grid.tile_size);
+      let y = p.floor(p.mouseY / arg.grid.tile_size);
+
+      if (x >= 0 && x < arg.grid.w && y >= 0 && y < arg.grid.h) {
+        wallpen_state = !node_grid[y][x].isWall;
+        is_dragging = true;
+        handleWallDrawing();
+      }
+    };
+
+    p.mouseDragged = () => {
+      if (!is_dragging) return;
+      if (
+        p.mouseX < 0 ||
+        p.mouseX > arg.screen.w ||
+        p.mouseY < 0 ||
+        p.mouseY > arg.screen.h
+      )
+        return;
+      handleWallDrawing();
+    };
+
+    p.mouseReleased = () => {
+      if (is_dragging) {
+        is_dragging = false;
+        reSolveAndResetUI();
+      }
+    };
+  };
+
+  new p5(sketch);
+</script>
+
+<style>
+  .container {
+    display: flex;
+    flex-direction: row;
+    gap: 30px;
+    align-items: flex-start;
+    margin: 20px 0;
+    padding: 20px;
+    border-radius: 8px;
+    color: white;
+  }
+
+  #eikonalSpreadingAnim {
+    line-height: 0;
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  }
+
+  .controls {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    min-width: 250px;
+  }
+
+  span {
+    display: block;
+    color: #888;
+    font-size: 0.8em;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 5px;
+  }
+
+  .slider-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: #2a2a2a;
+    padding: 12px;
+    border-radius: 6px;
+  }
+
+  input[type='range'] {
+    width: 100%;
+    cursor: pointer;
+  }
+
+  .value-display {
+    text-align: right;
+    font-family: monospace;
+    font-size: 0.9em;
+    color: #4caf50;
+  }
+
+  .button-group,
+  .mode-selector-container {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+  }
+
+  button {
+    flex: 1;
+    background: #333;
+    border: 1px solid #444;
+    color: white;
+    padding: 10px;
+    cursor: pointer;
+    font-size: 0.9em;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+  }
+
+  button:hover {
+    background: #444;
+    border-color: #555;
+  }
+
+  button.active {
+    background: #007aff;
+    border-color: #0056b3;
+    color: white;
+  }
+
+  @media (max-width: 900px) {
+    .container {
+      flex-direction: column;
+      align-items: center;
+    }
+  }
+</style>

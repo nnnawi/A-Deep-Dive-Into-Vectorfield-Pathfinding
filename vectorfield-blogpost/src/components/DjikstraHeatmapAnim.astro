@@ -24,7 +24,7 @@
 </div>
 
 <script>
-  import { dist_arr } from '../common/constant';
+import { dist_arr } from '../common/constant';
 import { gfx_draw_grid, gfx_draw_heatmap } from '../common/gfx_function';
 import { djikstra_algorithm, node } from '../common/solver_function';
 import {
@@ -60,8 +60,8 @@ import {
   var gfx_heatmap;
 
   var target = {
-    x: 0,
-    y: 0,
+    x: 5,
+    y: 5,
   };
 
   const sketch = (p) => {
@@ -185,7 +185,15 @@ import {
         }
       }
 
-      gfx_draw_heatmap(p, gfx_heatmap, node_grid, target, arg, heatmap_mode, heatmap_mode === 'hue' ? 10 : 25);
+      gfx_draw_heatmap(
+        p,
+        gfx_heatmap,
+        node_grid,
+        target,
+        arg,
+        heatmap_mode,
+        heatmap_mode === 'hue' ? 10 : 25
+      );
     };
 
     p.mouseMoved = () => {

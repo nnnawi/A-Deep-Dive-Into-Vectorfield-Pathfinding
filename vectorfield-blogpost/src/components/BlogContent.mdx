@@ -3,6 +3,8 @@ import GraphGridRelationAnim from './GraphGridRelationAnim.astro';
 import PathfindingDefinitionAnim from './PathfindingDefinitionAnim.astro';
 import GraphDefinitionAnim from './GraphDefinitionAnim.astro';
 import DjikstraHeatmapAnim from './DjikstraHeatmapAnim.astro'
+import DistanceKernelComparisonAnim from 'DistanceKernelComparisonAnim.astro'
+import EikonalSpreadingAnim from 'EikonalSpreadingAnim.astro'
 
 # A Deep Dive into Goal-based Vector Field Pathfinding
 
@@ -273,5 +275,35 @@ However, unlike the original Dijkstra algorithm, this version does not store the
 We can visually represent this heatmap by assigning a given color to a tile, determined by the "real-distance" of this tile to the target as you can see with the animation above.
 
 One important customization at this stage involves the choice of distance kernel. 
-As mentioned earlier, the distances between a node and its eight neighbors are determined by a kernel or weight matrix. 
-By selecting different distance matrices, we can control how distances are accumulated — which directly affects the shape of the heatmap and the resulting behavior of the pathfinding. (See above).
+As mentioned earlier, the distances between a node and its eight neighbors are determined by a kernel or weight matrix.
+By selecting different distance matrices, we can control how distances are accumulated — which directly affects the shape of the heatmap and the resulting behavior of the pathfinding.
+
+<DistanceKernelComparisonAnim/>
+
+#### Using the Eikonal equation
+
+Another way to obtain the distance heatmap of a given 2D grid populated with walls is by solving the Eikonal Equation. When I first made a video about VFP, I was unaware of this method but I now found it so elegant and intuitive that I had to share it.
+
+For a bit of context the Eikonal equation is originally a non-linear partial differential equation that helps models how a wavefront propagates through a medium with varying properties.
+Intuitively we can think of it as the equation that computes the shortest travel time or minimum distance from a source point to every other point in a domain, taking into account varying speeds or costs throughout the space. It answers the fundamental question: "What's the fastest way to get from here to there?".
+
+<EikonalSpreadingAnim/>
+
+$$
+|\nabla T(x)| = \frac{1}{F(x)}
+$$
+
+Where :
+
+- $T(x)$ is the travel time function (what we seek)
+- $F(x)$ is the speed function (how fast you can travel at postion $x$)
+- $|\nabla T(x)|$ is the magnitude of the gradient of $T(x)$
+
+In our case, we define the source by setting the initial condition: $T(\text{source}) = 0$, <br/>
+And the speed function $F(x)$ as follows:
+
+- $F(x) = 0$ if the node $x$ is a wall (i.e., not walkable)
+- $F(x) = 1$ if the node $x$ is walkable
+
+With these settings, computing the distance heatmap reduces to solving the Eikonal equation over the grid domain. To do this efficiently, we can use a numerical solver like the Fast Sweeping Method (FSM).
+
