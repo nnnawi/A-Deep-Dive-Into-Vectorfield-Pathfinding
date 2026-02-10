@@ -1,0 +1,307 @@
+---
+// Vector Field Heatmap with Distance Matrix
+---
+
+<div class="container">
+  <div id="djikstraHeatmapAnim"></div>
+  <div class="controls">
+    <span>Distance Kernel</span>
+    <div class="distance-selector-container">
+      <button class="dist-btn" data-distance="Euclidian">Euclidian</button>
+      <button class="dist-btn" data-distance="Tchebishev">Tchebishev</button>
+      <button class="dist-btn" data-distance="Manhattan">Manhattan</button>
+    </div>
+    <span>Visualization Mode</span>
+    <div class="mode-selector-container">
+      <button class="mode-btn" data-mode="hue">HUE heatmap</button>
+      <button class="mode-btn" data-mode="grayscale">Grayscale</button>
+    </div>
+    <div class="checkbox-container">
+      <input type="checkbox" id="show-values-cb" />
+      <label for="show-values-cb">Show Values</label>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { dist_arr } from '../common/constant';
+import { gfx_draw_grid, gfx_draw_heatmap } from '../common/gfx_function';
+import { djikstra_algorithm, node } from '../common/solver_function';
+import {
+  is_in_grid,
+  is_in_screen,
+  reset_node_grid,
+} from '../common/utils_function';
+
+  const arg = {
+    screen: {
+      w: 660,
+      h: 450,
+    },
+
+    grid: {
+      tile_size: 30,
+      w: 0,
+      h: 0,
+      stroke: 100,
+      stroke_weight: 1,
+    },
+  };
+
+  var node_grid;
+  var current_distance = 'Tchebishev'; // Default distance metric
+  var heatmap_mode = 'hue'; // Default heatmap mode
+  var show_values = false; // Default values display
+
+  var is_dragging = false;
+  var wallpen_state = true;
+
+  var gfx_grid;
+  var gfx_heatmap;
+
+  var target = {
+    x: 0,
+    y: 0,
+  };
+
+  const sketch = (p) => {
+    p.setup = () => {
+      let canvas = p.createCanvas(arg.screen.w, arg.screen.h);
+      canvas.parent('djikstraHeatmapAnim');
+
+      arg.grid.w = p.floor(arg.screen.w / arg.grid.tile_size);
+      arg.grid.h = p.floor(arg.screen.h / arg.grid.tile_size);
+
+      node_grid = new Array(arg.grid.h)
+        .fill()
+        .map((_, y) =>
+          new Array(arg.grid.w).fill().map((_, x) => new node(x, y))
+        );
+
+      gfx_grid = p.createGraphics(arg.screen.w, arg.screen.h);
+      gfx_draw_grid(p, gfx_grid, arg);
+
+      gfx_heatmap = p.createGraphics(arg.screen.w, arg.screen.h);
+      djikstra_algorithm(node_grid, target, dist_arr[current_distance], arg);
+
+      // Add event listener for distance buttons
+      const distButtons = document.querySelectorAll('.dist-btn');
+
+      const updateActiveButton = (activeDistance) => {
+        distButtons.forEach((btn) => {
+          if (btn.getAttribute('data-distance') === activeDistance) {
+            btn.classList.add('active');
+          } else {
+            btn.classList.remove('active');
+          }
+        });
+      };
+
+      // Set initial active state
+      updateActiveButton(current_distance);
+
+      distButtons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          current_distance = btn.getAttribute('data-distance');
+          updateActiveButton(current_distance);
+          reset_node_grid(node_grid);
+          djikstra_algorithm(
+            node_grid,
+            target,
+            dist_arr[current_distance],
+            arg
+          );
+        });
+      });
+
+      // Add event listener for mode buttons
+      const modeButtons = document.querySelectorAll('.mode-btn');
+
+      const updateActiveMode = (activeMode) => {
+        modeButtons.forEach((btn) => {
+          if (btn.getAttribute('data-mode') === activeMode) {
+            btn.classList.add('active');
+          } else {
+            btn.classList.remove('active');
+          }
+        });
+      };
+
+      updateActiveMode(heatmap_mode);
+
+      modeButtons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          heatmap_mode = btn.getAttribute('data-mode');
+          updateActiveMode(heatmap_mode);
+        });
+      });
+
+      // Add event listener for checkbox
+      const showValuesCb = document.getElementById('show-values-cb');
+      showValuesCb.addEventListener('change', (e) => {
+        show_values = e.target.checked;
+      });
+    };
+
+    p.draw = () => {
+      p.background(0);
+      p.image(gfx_heatmap, 0, 0);
+      // p.image(gfx_grid, 0, 0);
+
+      for (let y = 0; y < node_grid.length; y++) {
+        for (let x = 0; x < node_grid[0].length; x++) {
+          node_grid[y][x].update_display_dist(p, 0.05);
+
+          if (show_values) {
+            let current_node = node_grid[y][x];
+            if (!current_node.isWall && current_node.dist !== Infinity) {
+              let textColor;
+              if (heatmap_mode === 'hue') {
+                let h = (current_node.display_dist * 10) % 360;
+                // Bright hues (yellow, green, cyan) get black text, others get white
+                textColor = h > 40 && h < 190 ? 0 : 255;
+              } else {
+                let brightness = p.map(
+                  current_node.display_dist,
+                  0,
+                  25,
+                  255,
+                  0
+                );
+                textColor = brightness > 150 ? 0 : 255;
+              }
+
+              p.fill(textColor);
+              p.noStroke();
+              p.textAlign(p.CENTER, p.CENTER);
+              p.textSize(10);
+              p.text(
+                p.round(current_node.display_dist),
+                (x + 0.5) * arg.grid.tile_size,
+                (y + 0.5) * arg.grid.tile_size
+              );
+            }
+          }
+        }
+      }
+
+      gfx_draw_heatmap(p, gfx_heatmap, node_grid, target, arg, heatmap_mode, heatmap_mode === 'hue' ? 10 : 25);
+    };
+
+    p.mouseMoved = () => {
+      // Only respond to mouse events if mouse is over the canvas
+      if (
+        p.mouseX < 0 ||
+        p.mouseX > arg.screen.w ||
+        p.mouseY < 0 ||
+        p.mouseY > arg.screen.h
+      )
+        return;
+      if (is_in_screen(p.mouseX, p.mouseY, arg)) {
+        let grid_x = p.floor(p.mouseX / arg.grid.tile_size);
+        let grid_y = p.floor(p.mouseY / arg.grid.tile_size);
+
+        target.x = grid_x;
+        target.y = grid_y;
+        reset_node_grid(node_grid);
+        djikstra_algorithm(node_grid, target, dist_arr[current_distance], arg);
+      }
+    };
+
+    p.mouseDragged = () => {
+      // Only respond to mouse events if mouse is over the canvas
+      if (
+        p.mouseX < 0 ||
+        p.mouseX > arg.screen.w ||
+        p.mouseY < 0 ||
+        p.mouseY > arg.screen.h
+      )
+        return;
+
+      let x = p.floor(p.mouseX / arg.grid.tile_size);
+      let y = p.floor(p.mouseY / arg.grid.tile_size);
+
+      if (!is_in_grid(x, y, arg)) return;
+
+      let current_node = node_grid[y][x];
+
+      if (!is_dragging) {
+        wallpen_state = !current_node.isWall;
+        is_dragging = true;
+      }
+
+      current_node.isWall = wallpen_state;
+      reset_node_grid(node_grid);
+      djikstra_algorithm(node_grid, target, dist_arr[current_distance], arg);
+    };
+
+    p.mouseReleased = () => {
+      if (is_dragging) is_dragging = false;
+    };
+  };
+
+  new p5(sketch);
+</script>
+
+<style>
+  .container {
+    display: flex;
+    flex-direction: row;
+  }
+
+  .controls {
+    flex: 1;
+  }
+
+  .distance-selector-container,
+  .mode-selector-container {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    margin-bottom: 15px;
+  }
+
+  .checkbox-container {
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: white;
+  }
+
+  .checkbox-container input {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+  }
+
+  span {
+    display: block;
+    color: #ccc;
+    font-size: 0.9em;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  button {
+    background: #333;
+    border: 1px solid #555;
+    color: white;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+    border-radius: 4px;
+    flex: 1;
+  }
+
+  button:hover {
+    background: #444;
+  }
+
+  button.active {
+    background: #007aff;
+    border-color: #0056b3;
+  }
+</style>

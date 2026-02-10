@@ -9,9 +9,9 @@
     let gridSize = 6;
     let nodeRadius = 15;
     let spacing = 50;
-    let offsetX = 70;
-    let offsetY = 25;
-    let graphOffsetX = 450;
+    let offsetX = 40;
+    let offsetY = 35;
+    let graphOffsetX = 480;
 
     // Track which cells are walls (true = wall, false = open)
     let wallArray = Array(gridSize)
@@ -94,7 +94,13 @@
             p.rect(x + 1, y + 1, spacing - 2, spacing - 2);
           } else {
             // Draw open space with node number
-            p.fill(250);
+            let isHovered =
+              p.mouseX >= x &&
+              p.mouseX < x + spacing &&
+              p.mouseY >= y &&
+              p.mouseY < y + spacing;
+
+            p.fill(isHovered ? 210 : 250);
             p.noStroke();
             p.rect(x + 1, y + 1, spacing - 2, spacing - 2);
 

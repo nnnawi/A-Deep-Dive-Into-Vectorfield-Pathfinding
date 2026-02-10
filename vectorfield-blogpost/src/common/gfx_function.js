@@ -16,17 +16,28 @@ export function gfx_draw_grid(p, gfx, arg){
     }
 }
 
-export function gfx_draw_heatmap(p, gfx, node_grid, target, arg){
+export function gfx_draw_heatmap(p, gfx, node_grid, target, arg, mode = 'hue', colorIntensity = 10){
     gfx.clear();
-    gfx.colorMode(p.HSB);
+    
+    if (mode === 'hue') {
+        gfx.colorMode(p.HSB);
+    } else {
+        gfx.colorMode(p.RGB);
+    }
 
     for(let y = 0; y < arg.grid.h; y++){
         for(let x = 0; x < arg.grid.w; x++){
             let current_node = node_grid[y][x];
             
-            gfx.fill(current_node.display_dist * 10, 255, 100);
-            if(current_node.dist == Infinity) gfx.fill(0, 0, 255);
-            if(current_node.isWall) gfx.fill(0, 0, 0);
+            if (mode === 'hue') {
+                gfx.fill(current_node.display_dist * colorIntensity, 255, 100);
+            } else {
+                let brightness = p.map(current_node.display_dist, 0, colorIntensity, 255, 0); // Closer = whiter, further = darker
+                gfx.fill(brightness);
+            }
+
+            if(current_node.dist == Infinity) gfx.fill(mode === 'hue' ? [0, 0, 255] : 100);
+            if(current_node.isWall) gfx.fill(mode === 'hue' ? 0 : [19, 53, 156]);
 
             gfx.rect(
                 x * arg.grid.tile_size,
@@ -38,7 +49,11 @@ export function gfx_draw_heatmap(p, gfx, node_grid, target, arg){
     }
 
     gfx.noStroke();
-    gfx.fill(0, 0, 0);
+    if (mode === 'hue') {
+        gfx.fill(0, 0, 0);
+    } else {
+        gfx.fill(255, 0, 0); // Red target in grayscale for better visibility
+    }
     gfx.ellipse((target.x + .5) * arg.grid.tile_size, (target.y + .5) * arg.grid.tile_size, arg.grid.tile_size, arg.grid.tile_size);
 }
 
