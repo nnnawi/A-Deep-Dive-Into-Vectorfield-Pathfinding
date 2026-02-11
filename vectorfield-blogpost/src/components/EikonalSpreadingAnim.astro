@@ -359,12 +359,11 @@
       for (let y = 0; y < arg.grid.h; y++) {
         for (let x = 0; x < arg.grid.w; x++) {
           let current_node = node_grid[y][x];
+          if (current_node.dist === Infinity) continue;
+
           if (current_node.isWall) {
             gfx_heatmap.colorMode(p.RGB);
             gfx_heatmap.fill(50);
-          } else if (current_node.dist === Infinity) {
-            gfx_heatmap.colorMode(p.RGB);
-            gfx_heatmap.fill(30);
           } else {
             const normalizedDist =
               maxDist > 0 ? current_node.dist / maxDist : 0;
@@ -418,6 +417,7 @@
     }
 
     p.draw = () => {
+      p.clear();
       p.image(gfx_heatmap, 0, 0);
     };
 
@@ -477,6 +477,18 @@
 
   #eikonalSpreadingAnim {
     line-height: 0;
+    background-color: #1a1a1a;
+    background-image:
+      linear-gradient(45deg, #222 25%, transparent 25%),
+      linear-gradient(-45deg, #222 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #222 75%),
+      linear-gradient(-45deg, transparent 75%, #222 75%);
+    background-size: 20px 20px;
+    background-position:
+      0 0,
+      0 10px,
+      10px -10px,
+      -10px 0px;
     border-radius: 4px;
     overflow: hidden;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);

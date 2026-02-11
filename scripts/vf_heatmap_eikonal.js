@@ -1,6 +1,6 @@
-import { is_in_grid, reset_node_grid, is_in_screen } from './utils_function.js';
 import { gfx_draw_grid, gfx_draw_heatmap } from './gfx_function.js';
 import { eikonal_solver } from './solver_function.js';
+import { is_in_grid, is_in_screen, reset_node_grid } from './utils_function.js';
 
 class node {
     constructor(x, y){
@@ -101,8 +101,7 @@ const vf_heatmap_eikonal_sketch = (p, sketch_name) => {
 
     p.mouseMoved = () => {
         // Only respond to mouse events if mouse is over the canvas
-        if (p.mouseX < 0 || p.mouseX > arg.screen.w || p.mouseY < 0 || p.mouseY > arg.screen.h) return;
-        if (!is_in_screen(p.mouseX, p.mouseY, arg) || true) return;
+        if (!is_in_screen(p.mouseX, p.mouseY, arg)) return;
         let grid_x = p.floor(p.mouseX / arg.grid.tile_size);
         let grid_y = p.floor(p.mouseY / arg.grid.tile_size);
         

@@ -1,5 +1,5 @@
+import { neighbor_pos_arr } from './constant.js';
 import { is_in_grid, u_angle_lerp } from './utils_function.js';
-
 export function djisktra_algorithm_step(open_list, node_grid, dist_arr, arg){
 
     //Find node w/ the minimum distance in the open_list
@@ -23,6 +23,7 @@ export function djisktra_algorithm_step(open_list, node_grid, dist_arr, arg){
 
         let neighbor_x = current_node.x + dx;
         let neighbor_y = current_node.y + dy;
+
 
         if(!is_in_grid(neighbor_x, neighbor_y, arg)) continue;
 
@@ -179,12 +180,6 @@ export function eikonal_solver(NODE_grid, target, options = {}) {
     
     NODE_grid.map((arr, y) => arr.map((node, x) => node.dist = distanceField[y][x]));
 }
-
-const neighbor_pos_arr = [
-    [-1,-1], [0,-1], [1,-1],
-    [-1,0],           [1,0],
-    [-1,1], [0,1], [1,1]
-]
 
 export class node {
     constructor(x, y){

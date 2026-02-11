@@ -15,3 +15,9 @@ export const dist_arr = {
     [1.41, 1, 1.41],
   ],
 };
+
+export const neighbor_pos_arr = [
+    [-1,-1], [0,-1], [1,-1],
+    [-1,0],           [1,0],
+    [-1,1], [0,1], [1,1]
+]

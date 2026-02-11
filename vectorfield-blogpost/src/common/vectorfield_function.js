@@ -1,5 +1,5 @@
+import { parse } from 'mathjs';
 import { is_in_grid } from './utils_function.js';
-
 var sobel_matrix = {
     x: [
         [-1, 0 ,1],
@@ -13,8 +13,14 @@ var sobel_matrix = {
     ]
 }
 
-export function update_vectorfield(p, node_grid, arg){
-    const node = math.parse('-log(x + 1)');
+const neighbor_pos_arr = [
+    [-1,-1], [0,-1], [1,-1],
+    [-1,0],           [1,0],
+    [-1,1], [0,1], [1,1]
+]
+
+export function update_vectorfield(p, node_grid, arg, type){
+    const node = parse('-log(x + 1)');
     const code = node.compile();
 
     for(let y = 0; y < arg.grid.h; y++){
@@ -22,8 +28,18 @@ export function update_vectorfield(p, node_grid, arg){
             let current_node = node_grid[y][x];
             if(current_node.isWall) continue;
 
-            //let node_gradient = kernel_min(node_grid, x, y, arg);
-            let node_gradient = kernel_f_function(node_grid, x, y, code, arg);
+            let node_gradient;
+            switch(type){
+                case "sobel":
+                    node_gradient = kernel_sobel(node_grid, x, y, arg);
+                    break;
+                case "min":
+                    node_gradient = kernel_min(node_grid, x, y, arg);
+                    break;
+                case "function":
+                    node_gradient = kernel_f_function(node_grid, x, y, code, arg);
+            }
+            
             let angle = p.atan2(node_gradient.y, node_gradient.x) - p.PI/2;
             current_node.vector_angle = angle;
         }
