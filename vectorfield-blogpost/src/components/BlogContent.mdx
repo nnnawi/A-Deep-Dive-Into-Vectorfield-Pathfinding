@@ -409,3 +409,41 @@ Neighbors closer to the goal therefore have more influence. Summing these weight
 This works because it approximates the opposite of the distance gradient, pointing toward the steepest descent. Without explicitly computing derivatives, it produces a smooth vector field using only local, geometric information.
 
 <WeightedNeighborVectorfieldAnim/>
+
+## Agent Motion Over a Vector Field
+
+Once the vector field has been computed, guiding an agent becomes straightforward.
+The grid contains a 2D vector for each tile that points toward the goal.
+At each frame, the agent reads the vector beneath its feet and uses it to update its position.
+
+The agent’s motion equation is:
+
+$$
+\mathbf{p}_{t+1} = \mathbf{p}_t + s \cdot \mathbf{v}(\lfloor \mathbf{p}_t \rfloor)
+$$
+
+Where:
+
+- $\mathbf{p}_t = (x,y)$ is the agent’s current position *(a 2D vector)*,
+- $\mathbf{p}_{t+1}$ is the agent’s next position,
+- $\lfloor \mathbf{p}_t \rfloor$ maps to the grid-tile under the agent,
+- $\mathbf{v}(\lfloor \mathbf{p}_t \rfloor)$ is the normalized vector stored in the tile $\lfloor \mathbf{p}_t \rfloor$,
+- $s$ is a scalar representing the agent’s speed per time step.
+
+This yields basic motion that aligns the agent with the vector field.
+
+### Velocity Smoothing with LERP
+
+To avoid jittery or abrupt changes in direction when crossing from one tile to another, you can smooth the velocity using linear interpolation (LERP).
+Instead of directly applying the grid vector as velocity, define a target velocity and smoothly interpolate toward it:
+
+$$
+\begin{aligned}
+&\mathbf{v}_{\text{target}} = \mathbf{v}(\lfloor \mathbf{p}_t \rfloor) \\[5pt]
+&\mathbf{v}_{t+1} = \text{lerp}(\mathbf{v}_t, \mathbf{v}_{\text{target}}, \alpha) \\[5pt]
+&\mathbf{p}_{t+1} = \mathbf{p}_t + s \cdot \mathbf{v}_{t+1}
+\end{aligned}
+$$
+
+Where $\alpha \in [0, 1]$ controls smoothing — low $\alpha$ yields slower turning, high $\alpha$ makes the agent more responsive.
+
