@@ -9,6 +9,7 @@ import EikonalHeatmapAnim from 'EikonalHeatmapAnim.astro'
 import SobelVectorfieldAnim from 'SobelVectorfieldAnim.astro' 
 import MinNeighborVectorfieldAnim from 'MinNeighborVectorfieldAnim.astro'
 import WeightedNeighborVectorfieldAnim from 'WeightedNeighborVectorfieldAnim.astro'
+import AgentMotionVectorfieldAnim from 'AgentMotionVectorfieldAnim.astro'
 
 # A Deep Dive into Goal-based Vector Field Pathfinding
 
@@ -446,4 +447,27 @@ $$
 $$
 
 Where $\alpha \in [0, 1]$ controls smoothing — low $\alpha$ yields slower turning, high $\alpha$ makes the agent more responsive.
+
+<AgentMotionVectorfieldAnim/>
+
+
+## Local Limitations and Edge Cases in Vector Field Computation
+
+When computing the vectorfield, two major types of edge cases arise: grid boundaries and walls in neighbor positions.
+Both situations present the same core issue: some of the 8-connected neighbors used to compute a vector may either be out of bounds or non-walkable.
+This becomes especially problematic when using methods like Sobel gradient or weighted neighbor vector summation, which depend on aggregating information from all neighbors.
+
+The difficulty is that walls and out-of-bound cells either lack a meaningful distance value or distort the local gradient.
+Ignoring them leads to undefined behavior (e.g., division by zero or null vectors), and assigning them arbitrary values often causes the resulting vector to point toward or outward the wall or grid edge.
+This may lead to path-following artifacts like jitter, backtracking, or agents getting stuck in corners.
+
+A practical fallback solution — although not theoretically grounded at first glance — is to assign out-of-bound or wall neighbors the same distance value as the current node.
+This flattens the local gradient and avoids introducing artificial directionality.
+Intuitively, it creates a “neutral slope” at the problematic boundary, allowing surrounding vectors to guide the direction.
+The resulting vector field is smoother, naturally diverges from impassable walls and edges, and helps agents follow walls or slide along boundaries without getting trapped.
+
+Alternatively, a more robust approach is to use the minNeighbor method for these edge cases.
+Since it doesn’t compute a weighted sum or derivative, but instead selects the neighbor with the lowest distance and points toward it, it handles walls and out-of-bounds naturally: any invalid neighbor is simply excluded from consideration.
+This ensures correctness without the need for fallback values.
+Since the method only looks at valid neighbors, it’s inherently more resistant to edge distortions and works well for tiles bordering walls or edges.
 
