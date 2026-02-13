@@ -10,8 +10,19 @@ import SobelVectorfieldAnim from 'SobelVectorfieldAnim.astro'
 import MinNeighborVectorfieldAnim from 'MinNeighborVectorfieldAnim.astro'
 import WeightedNeighborVectorfieldAnim from 'WeightedNeighborVectorfieldAnim.astro'
 import AgentMotionVectorfieldAnim from 'AgentMotionVectorfieldAnim.astro'
+import FallbackComparison from 'FallbackComparison.astro'
 
-# A Deep Dive into Goal-based Vector Field Pathfinding
+<video autoplay muted loop playsinline style="width: 100%;">
+  <source src="/header-animation.mp4" type="video/mp4">
+  Your browser does not support the video tag.
+  </source>
+</video>
+
+<div style="position: relative">
+# A Deep Dive Into <span style="color: #DF2D19; font-weight: 800;">Vectorfield</span> Pathfinding
+
+<img src="/arrow-title-red-alpha.png" style="width: 100%; position: absolute; top: .5px; right: -1px" />
+</div>
 
 ## Introduction
 
@@ -21,6 +32,7 @@ After digging into the topic, I came across **goal-based vector pathfinding** _(
 And it just clicked - it did exactly what I needed, but in a way that felt more visual & intuitive than $$A^*$$ or Dijkstra.
 I liked it so much that I even made a video about it in 2020 — just to share how cool and practical this approach really is.
 
+<div class="ytb-video-container">
 <iframe
   width="560"
   height="315"
@@ -35,6 +47,7 @@ I liked it so much that I even made a video about it in 2020 — just to share h
   allow="autoplay; encrypted-media"
   allowfullscreen
 ></iframe>
+</div>
 
 The video ended up doing very well for a niche subject! It sparked a lot of great discussions in the comments — _people sharing alternative approaches, asking smart questions, or diving deeper into the method_.
 
@@ -44,12 +57,16 @@ This is what this blogpost is about: a deep dive into vector field pathfinding. 
 How it works, the many ways you can build and tweak it to fit different needs and where it fits in the broader landscape of pathfinding algorithms.
 
 <br />
+<br />
+
 
 ## What is pathfinding ?
 
 Before jumping straight into VFP _(Vector Field Pathfinding)_, it’s worth taking a moment to remind ourselves **what pathfinding really is ?** — where it comes from, and why it exists in the first place.
 
-### Defining the problem _(a bit of graph theory)_:
+<br />
+
+### Defining the problem _(a bit of graph theory)_ :
 
 At its core, pathfinding is a **graph theory** problem. A graph consists of a set of **vertices** $V$ connected by a set of **edges** $E$ _(ie. pairs of vertices)_.
 Graphs can also be weighted, meaning each edge has an associated value _(or weight)_ that can represent **a distance, a cost, or any other metrics**.
@@ -58,8 +75,8 @@ Graphs can also be weighted, meaning each edge has an associated value _(or weig
     <div>
         $$
         \begin{align*}
-        &\text{Let } G = (V,E) \text{ be a graph with:} \\[10pt]
-        & V = \text{Set of Vertices} = \{X_1, X_2, X_3, ... \} \\[10pt]
+        &\text{Let } G = (V,E) \text{ be a graph with:} \\[5pt]
+        & V = \text{Set of Vertices} = \{X_1, X_2, X_3, ... \} \\[5pt]
         & E = \text{Set of Edges} = \{
             (X_1,X_4),
             (X_1,X_3), \\
@@ -79,7 +96,7 @@ Graphs can also be weighted, meaning each edge has an associated value _(or weig
 We can thus define **pathfinding** as finding the **shortest path between two vertices of a graph**,
 or more precisely the path $P^*$ between two vertices $A, B \in V$ of a graph $G = (V,E)$ such that the sum of the weights of its constituent edges is minimized.
 
-<div class="latex-animation-container">
+<div class="latex-animation-container" style="margin-top: 40px">
   <div style="display: flex; flex-direction: column"> 
       <span>
       $$
@@ -104,6 +121,8 @@ or more precisely the path $P^*$ between two vertices $A, B \in V$ of a graph $G
   </div>
 </div>
 
+<br/>
+
 ### Setting up our pathfinding environment :
 
 In this post, we'll explore a specific type of graph: the **8-neighbor grid graph**, _(also known as a [King's graph](https://en.wikipedia.org/wiki/King%27s_graph))_.
@@ -112,13 +131,11 @@ We can think of it as **a 2D grid** where each tile connects to all its 8 surrou
 This graph is undirected, meaning connections flow both ways between tiles and
 each connection (edge) carries **a weight determined by a distance kernel**—a predefined matrix that might, for instance, make diagonal connections stronger than horizontal or vertical ones.
 
-<div style="display: flex; flex-direction: column; align-items: center; margin: 25px 0 50px 0;">
+<div style="display: flex; flex-direction: column; align-items: center; margin: 25px 0 50px 0; gap: 15px">
   <GraphGridRelationAnim />
-  <div style="display: flex; flex-direction: column; align-items: center; gap: 1px">
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 8px">
     <span>A 2D Grid w/ its corresponding node graph</span>
-    <span class="title-indication">
-      Click & Drag over the grid to add walls
-    </span>
+    <span class="title-indication"> Click & Drag over the grid to add walls </span>
   </div>
 </div>
 
@@ -129,6 +146,7 @@ The **8-neighbor grid graph approach** provides a **universal way to discretize 
 Therefore finding the shortest path between two tiles while avoiding walls becomes finding the shortest path between two vertices in our modified graph.
 
 <br />
+<br/>
 
 ## Overview of Djikstra algorithm
 
@@ -138,6 +156,8 @@ Understanding how Dijkstra’s algorithm works provides **a solid framework** fo
 
 Vector field pathfinding builds directly on each of these steps, which is why we begin our study here.
 Similarly, algorithms like $A^\star$ also extend Dijkstra’s approach, though they serve different purposes.
+
+<br/>
 
 ### Initialisation
 
@@ -164,10 +184,11 @@ $$
 $$
 </div>
 
+<br/>
+
 ### Main loop
 
 The main loop **runs as long as there are nodes in $Q$**, the set of unvisited nodes. This ensures that we eventually visit all nodes in the graph, allowing us to compute the shortest path from the source to every other node. Intuitively, this loop mimics the **spreading of information outward** from the source.
-
 <div class="pseudo-code-container">
 $$
 \begin{array}{l}
@@ -188,12 +209,12 @@ At each iteration, we select the node $u$ with the smallest tentative distance �
 
 The selected node is then removed from $Q$, marking it as processed.
 
+<br/>
+
 ### Neighbor Evaluation & Distance Update (Relaxation)
 
 For the selected node u, we look at **each of its neighbors $v$** and we calculate **a new tentative distance $\text{alt}$** for each of them. If $\text{alt}$ is shorter than $\text{dist}[v]$, we update it — this is the relaxation step. At the same time, we record $u$ as the previous node that leads to $v$ on the current best-known path.
-
 <div class="pseudo-code-container">
-
 $$
 \begin{array}{l}
 \textbf{Dijkstra Neighbor Evaluation \& Distance Update (Pseudo-code)} \\
@@ -208,7 +229,6 @@ $$
 \end{aligned}
 \end{array}
 $$
-
 </div>
 
 This process essentially spreads a “wavefront” of shortest distances to the source across the graph, updating nodes as more efficient paths are discovered.
@@ -216,15 +236,16 @@ This process essentially spreads a “wavefront” of shortest distances to the 
 When the algorithm finishes, each node stores its distance to the target and the next neighbor to reach it. 
 To find the shortest path from any node, simply follow these neighbors step by step until you reach the target.  
 
+<br/>
+
 ### Djikstra algorithm pseudo-code and implementation example :
 
 Here’s the full pseudo-code for this version of Dijkstra’s algorithm, along with a plain JavaScript implementation.
 Since we’re working with an 8-neighbor grid, the graph is stored as a 2D array where each cell is a Node object—a custom class built for this project.
 Of course, this is just one way to represent a graph in code. Other common formats include adjacency matrices or adjacency lists for instance, depending on the problem’s needs and the kind of operations you want to optimize for.
-
 <div class="algorithm-content" style="font-size: 14px">
 $$
-\begin{align}
+\begin{align*}
 &\textbf{function } \text{Dijkstra}(\text{Graph}, \text{source}): \\
 &\quad \textbf{for each } \text{vertex } v \text{ in Graph}: \quad \textcolor{gray}{\text{// Initialization}} \\
 &\quad \quad \text{dist}[v] = \infty \quad \textcolor{gray}{\text{// initial distance from source to vertex } v \text{ is set to infinite}} \\
@@ -240,7 +261,7 @@ $$
 &\quad \quad \quad \quad \text{dist}[v] = \text{alt} \\
 &\quad \quad \quad \quad \text{previous}[v] = u \\
 &\quad \textbf{return } \text{previous}[ \;]
-\end{align}
+\end{align*}
 $$
 </div>
 
@@ -253,6 +274,8 @@ But in practice, if you’re only interested in the path to a specific target no
 Also, while we start here by filling the queue with all nodes from the beginning, there’s a common variation where you start with just the source node.
 If you go that route, just make sure to add neighboring nodes to the queue as you visit them—since they won’t be preloaded like in this version.
 
+<br/>
+<br/>
 
 ## How to construct Vectorfield Pathfinding
 
@@ -290,7 +313,8 @@ By selecting different distance matrices, we can control how distances are accum
 Another way to obtain the distance heatmap of a given 2D grid populated with walls is by solving the Eikonal Equation. When I first made a video about VFP, I was unaware of this method but I now found it so elegant and intuitive that I had to share it.
 
 For a bit of context the Eikonal equation is originally a non-linear partial differential equation that helps models how a wavefront propagates through a medium with varying properties.
-Intuitively we can think of it as the equation that computes the shortest travel time or minimum distance from a source point to every other point in a domain, taking into account varying speeds or costs throughout the space. It answers the fundamental question: "What's the fastest way to get from here to there?".
+Intuitively we can think of it as the equation that computes the shortest travel time or minimum distance from a source point to every other point in a domain, taking into account varying speeds or costs throughout the space.
+It answers the fundamental question: "What's the fastest way to get from here to there?".
 
 <EikonalSpreadingAnim/>
 
@@ -471,3 +495,109 @@ Since it doesn’t compute a weighted sum or derivative, but instead selects the
 This ensures correctness without the need for fallback values.
 Since the method only looks at valid neighbors, it’s inherently more resistant to edge distortions and works well for tiles bordering walls or edges.
 
+<FallbackComparison/>
+
+
+## Performance, Time Complexity & Common Questions
+
+Now that we've covered how VFP works in detail, it's worth stepping back and asking: where does it actually fit in the landscape of pathfinding?
+The comment section of my original video surfaced that question repeatedly — along with a few misconceptions I was responsible for spreading.
+Here are the ones that came up most often, with the answers I should have given back then.
+
+### Isn't VFP just Dijkstra ?
+
+In a some sense, yes — and we've already seen why.
+Dijkstra is the backbone of VFP's heatmap generation, and with the min-neighbor approach, the vectorfield is essentially a free byproduct: the parent pointers recorded during the search _are_ the vector field, with no extra computation needed.
+
+But the distinction lies in **purpose**.
+Dijkstra is a shortest-path algorithm, it finds the optimal route from one node to one target.
+VFP is a **movement model**, it precomputes a direction for every tile in the grid, so that any number of agents can navigate toward the goal at near-zero per-agent cost.
+
+Vector field pathfinding is not a better shortest-path algorithm than Dijkstra. It's a better _movement architecture_ for many agents sharing the same goal.
+
+### Why a grid? Why not navigation meshes or Voronoi diagrams?
+
+The grid is a **choice**, not a necessity — and one that I didn't justify in my original video, mostly because I lacked the theoretical context at the time.
+Continuous space, navigation meshes, and Voronoi diagrams are all legitimate ways to discretize an environment, and each comes with its own trade-offs.
+
+Grids are popular for this kind of application because they combine **simplicity**, **cache-friendliness**, and excellent **GPU parallelism**.
+Every tile is the same size, storage is compact, and operations like convolution map almost perfectly to GPU hardware
+For real-time simulations with large agent counts, those properties will matter a lot.
+
+### Is VFP faster than Djikstra / A*?
+
+This was the biggest claim I got wrong in my original video — partly because I wasn't yet comfortable with complexity analysis, and partly because I simply didn't verify it.
+
+The honest answer is: **it depends on what you're measuring, and for whom.**
+
+First, it's worth noting that VFP and Djikstra / A* don't solve quite the same problem. The laters find the shortest path from _one specific source_ to _one specific target_.
+VFP builds a complete vector field over the _entire grid_ pointing every tile toward the goal.
+By design, VFP over-computes when only one agent needs a path.
+
+For a **single agent**, Djikstra / A* is almost always faster.
+Especially for A* with its heuristic focuses the search and avoids visiting most of the grid.
+VFP can't compete here.
+
+VFP's advantage emerges when **many agents share the same goal**.
+The heatmap and vector field are computed once, then reused by every agent at effectively zero cost per frame — each agent simply reads the vector stored in its current tile.
+
+Beyond that, it's also worth being clear on path quality: **VFP does not guarantee the shortest path**.
+Dijkstra and A* produce topologically optimal paths, but the gradient-based smoothing steps (Sobel, Weighted sum) distort those paths in exchange for geometric smoothness.
+The only VFP variant that preserves true shortest paths is Dijkstra + min-neighbor, since it reuses the parent pointers directly.
+
+With those nuances in mind, let's look at how the different algorithms compare in practice. Our context is 2D grid of size $$N \times M$$ tiles.
+
+#### CPU Complexity
+
+On the CPU, VFP always performs _at least_ as much work as a plain Dijkstra, since the vector field step is an extra pass over the grid.
+The exception — again — is the **Dijkstra + min-neighbor** combination, where the parent pointers double as the vector field at no added cost.
+
+For every other vector field method (Sobel, weighted sum), an additional $O(NM)$ convolution pass is added on top of whichever heatmap method was used.
+
+| Step | Algorithm | CPU Complexity |
+|------|-----------|----------------|
+| Heatmap | Dijkstra (naive) | $O((NM)^2)$ |
+| Heatmap | Dijkstra (binary heap) | $O(NM \log NM)$ |
+| Heatmap | Eikonal — Fast Marching Method | $O(NM \log NM)$ |
+| Heatmap | Eikonal — Fast Sweeping Method | $O(NMk)$ &nbsp;_(k = iterations)_ |
+| Vector Field | Min-neighbor _(from Dijkstra parent pointers)_ | $O(1)$ — free byproduct |
+| Vector Field | Sobel operator | $O(NM)$ |
+| Vector Field | Min-neighbor _(standalone pass)_ | $O(NM)$ |
+| Vector Field | Weighted neighbor sum | $O(NM)$ |
+
+#### GPU Complexity
+
+The GPU picture is quite different — and this is where VFP genuinely shines.
+
+Dijkstra is an inherently sequential algorithm: each step depends on the previous one, which makes it a poor fit for GPU parallelism.
+Note that parallel variants exist _(like Parallel BFS)_, but they generally sacrifice the optimality guarantees of the original.
+
+The Eikonal equation, on the other hand, is better designed for this kind of distributed computation.
+Methods like the **Fast Iterative Algorithm (FIA)** decompose the problem into independent local updates that can be dispatched across thousands of GPU threads simultaneously, making full use of SIMD instructions and shared memory.
+
+Convolution — the basis of Sobel, min-neighbor, and weighted sum — is _embarrassingly parallel_: every tile can be updated independently.
+On a GPU with $p$ threads, an $N \times M$ convolution reduces to $O(NM/p)$, which in practice approaches $O(1)$ for large grids with enough parallelism.
+
+| Step | Algorithm | GPU Complexity |
+|------|-----------|----------------|
+| Heatmap | Dijkstra | $O(NM)$ — poor fit, inherently sequential |
+| Heatmap | Eikonal — Fast Iterative Algorithm | $O(NM/p)$ avg. &nbsp;_(p = threads)_ |
+| Vector Field | Sobel operator | $O(NM/p)$ → $O(1)$ |
+| Vector Field | Min-neighbor | $O(NM/p)$ → $O(1)$ |
+| Vector Field | Weighted neighbor sum | $O(NM/p)$ → $O(1)$ |
+
+So on the **CPU**, VFP adds overhead compared to a bare Dijkstra — unless you use the parent-pointer trick to skip the vector field step entirely.
+On the **GPU**, the Eikonal + convolution pipeline scales nearly linearly with the number of threads, and on modern hardware that means computing the full vector field for an enormous grid in milliseconds.
+
+
+
+
+remaining graphics to do : 
+
+Djikstra classic pathfinding algo.
+
+Vectorfield step graphics
+
+Different distance matrix comparison
+
+Sobel operator

@@ -16,6 +16,8 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:ital,wght@0,400;0,700;1,400&display=swap"
       rel="stylesheet"
     />
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
 
     <!-- p5.js library -->
     <script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js"></script>
@@ -23,12 +25,11 @@
     <style is:global>
       :root {
         --color-primary: #007acc;
-        --color-text: #2f2929;
+        --color-text: #2F2A29;
         --color-text-light: #5a6c7d;
-        --color-bg: #f5f5f5;
-        --color-bg-white: #ffffff;
+        --color-bg: #f7f4ec;
         --font-body: 'Merriweather', Georgia, serif;
-        --font-heading: 'Inter', system-ui, -apple-system, sans-serif;
+        --font-heading: "Playfair Display", serif;
       }
 
       * {
@@ -39,8 +40,7 @@
 
       body {
         font-family: var(--font-body);
-        line-height: 1.8;
-        max-width: 1200px;
+        max-width: 1000px;
         margin: 0 auto;
         padding: 2rem;
         background: var(--color-bg);
@@ -49,7 +49,6 @@
       }
 
       .container {
-        background: var(--color-bg-white);
         padding: 3rem;
         border-radius: 12px;
         /* box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); */
@@ -67,7 +66,13 @@
 
       .pseudo-code-container{
         font-size: 16px;
-        padding: 20px 0;
+        padding: 10px 0;
+      }
+
+      .ytb-video-container{
+        display: flex;
+        justify-content: center;
+        padding: 25px 0;
       }
 
       h1,
@@ -79,33 +84,34 @@
         font-family: var(--font-heading);
         font-weight: 700;
         color: var(--color-text);
-        margin-top: 2rem;
-        margin-bottom: 1rem;
-        line-height: 1.3;
       }
 
       h1 {
-        font-size: 2.5rem;
-        border-bottom: 3px solid var(--color-primary);
-        padding-bottom: 0.75rem;
-        margin-bottom: 2rem;
+        font-size: 70px;
+        line-height: 1.2;
+        margin-bottom: 70px;
       }
 
       h2 {
-        font-size: 2rem;
-        margin-top: 3rem;
-        border-bottom: 2px solid #e0e0e0;
-        padding-bottom: 0.5rem;
+        font-family: "Playfair Display";
+        font-size: 48px;
+        font-weight: 600;
+        line-height: 1.3;
+        padding-bottom: 12px;
+        margin-bottom: 28px;
+        border-bottom: 2px solid #646464;
+
       }
 
       h3 {
-        font-size: 1.5rem;
-        color: var(--color-primary);
+        font-family: "Merriweather";
+        font-size: 28px;
+        
       }
 
       p {
-        margin: 1.25rem 0;
-        line-height: 1.9;
+        margin: 23px 0;
+        line-height: 1.8;
       }
 
       .title-indication{

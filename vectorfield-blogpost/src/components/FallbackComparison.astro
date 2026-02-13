@@ -1,0 +1,513 @@
+---
+// Sobel Fallback Comparison Visualization
+---
+
+<div id="fallbackComparison"></div>
+
+<script>
+import { dist_arr, neighbor_pos_arr, sobel_matrix } from "../common/constant";
+import { gfx_draw_arrow } from "../common/gfx_function";
+import { setupVisibilityPause } from "../common/p5_utils";
+import { node } from "../common/solver_function";
+import { reset_node_grid } from "../common/utils_function";
+
+  const sketch = p => {
+     const arg = {
+        screen: {
+            w: 720,
+            h: 280,
+        },
+        grid: {
+            tile_size: 24,
+            w: 10,
+            h: 10,
+            stroke: 100,
+            stroke_weight: 1,
+        },
+        arrow: {
+            stroke: 125,
+            stroke_weight: 1.5,
+            main_len: 10,
+            scd_len: 4,
+            angle: 210,
+        },
+        layout: {
+            grid_width: 240,
+            grid_height: 240,
+            gap: 0,
+            start_x: 0,
+            title_height: 40,
+        }
+    }
+
+    // Graphics layers for each grid
+    var gfx_heatmaps = [];
+    var gfx_vectorfields = [];
+
+    // Three separate node grids
+    var node_grids = [];
+
+    var target = {
+        x: 7,
+        y: 7,
+    }
+
+    var needsRedraw = true;
+    var lastUpdateTime = 0;
+    var updateThrottle = 100; // Only update every 100ms
+
+    // Calculate grid positions
+    arg.layout.start_x = (arg.screen.w - (arg.layout.grid_width * 3 + arg.layout.gap * 2)) / 2;
+
+    function getGridX(gridIndex) {
+        return arg.layout.start_x + gridIndex * (arg.layout.grid_width + arg.layout.gap);
+    }
+
+    // Initialize wall pattern (cross shape in the middle)
+    function initializeWallPattern(node_grid) {
+        const centerX = Math.floor(arg.grid.w / 2);
+        const centerY = Math.floor(arg.grid.h / 2);
+
+        // Vertical wall
+        for (let y = 2; y < arg.grid.h - 2; y++) {
+            node_grid[y][centerX].isWall = true;
+        }
+
+        // Horizontal wall
+        for (let x = 2; x < arg.grid.w - 2; x++) {
+            node_grid[centerY][x].isWall = true;
+        }
+    }
+
+    p.setup = () => {
+        let canvas = p.createCanvas(arg.screen.w, arg.screen.h);
+        canvas.parent("fallbackComparison");
+
+        // Limit frame rate for better performance
+        p.frameRate(30);
+
+        // Create three node grids with the same wall pattern
+        for (let i = 0; i < 3; i++) {
+            let node_grid = new Array(arg.grid.h).fill().map((_, y) =>
+                new Array(arg.grid.w).fill().map((_, x) => new node(x, y))
+            );
+            initializeWallPattern(node_grid);
+            node_grids.push(node_grid);
+
+            // Create graphics for each grid
+            gfx_heatmaps.push(p.createGraphics(arg.grid.w * arg.grid.tile_size, arg.grid.h * arg.grid.tile_size));
+            gfx_vectorfields.push(p.createGraphics(arg.grid.w * arg.grid.tile_size, arg.grid.h * arg.grid.tile_size));
+        }
+
+        // Compute heatmap for all grids (using first grid, then copy to others)
+        dijkstra_optimized(node_grids[0], target, dist_arr.Euclidian, arg);
+
+        // Copy distances to other grids
+        for (let y = 0; y < arg.grid.h; y++) {
+            for (let x = 0; x < arg.grid.w; x++) {
+                node_grids[1][y][x].dist = node_grids[0][y][x].dist;
+                node_grids[2][y][x].dist = node_grids[0][y][x].dist;
+            }
+        }
+
+        // Compute vector fields for each method
+        update_vectorfield_sobel_raw(p, node_grids[0], arg);
+        update_vectorfield_sobel_fallback(p, node_grids[1], arg);
+        update_vectorfield_hybrid(p, node_grids[2], arg);
+
+        // Initial draw
+        redrawAll();
+    }
+
+    p.draw = () => {
+        // Only redraw when needed
+        if (needsRedraw) {
+            redrawAll();
+            needsRedraw = false;
+        }
+    }
+
+    function redrawAll() {
+        p.background(30);
+
+        // Draw each grid (no lerping needed - instant updates)
+        for (let gridIndex = 0; gridIndex < 3; gridIndex++) {
+            let gridX = getGridX(gridIndex);
+
+            // Draw heatmap
+            gfx_draw_heatmap_local(p, gfx_heatmaps[gridIndex], node_grids[gridIndex], target, arg);
+
+            // Draw vector field
+            gfx_draw_vectorfield_local(p, gfx_vectorfields[gridIndex], node_grids[gridIndex], target, arg);
+
+            // Display layers
+            p.push();
+            p.translate(gridX, arg.layout.title_height);
+            p.image(gfx_heatmaps[gridIndex], 0, 0);
+            p.image(gfx_vectorfields[gridIndex], 0, 0);
+            p.pop();
+        }
+
+        // Draw titles
+        drawTitles();
+    }
+
+    function drawTitles() {
+        p.fill(255);
+        p.noStroke();
+        p.textAlign(p.CENTER, p.TOP);
+        p.textSize(14);
+
+        const titles = [
+            "Raw Sobel (No Fallback)",
+            "Sobel with Same Distance Fallback",
+            "Sobel with Min Neighbor Fallback"
+        ];
+
+        for (let i = 0; i < 3; i++) {
+            let gridX = getGridX(i);
+            let titleX = gridX + arg.layout.grid_width / 2;
+            let titleY = 10;
+            p.text(titles[i], titleX, titleY);
+        }
+    }
+
+    p.mouseMoved = () => {
+        updateTargetFromMouse();
+    }
+
+    p.mouseDragged = () => {
+        updateTargetFromMouse();
+    }
+
+    function updateTargetFromMouse() {
+        // Throttle updates to avoid excessive computation
+        const currentTime = p.millis();
+        if (currentTime - lastUpdateTime < updateThrottle) {
+            return;
+        }
+
+        // Check if mouse is over any of the three grids
+        for (let gridIndex = 0; gridIndex < 3; gridIndex++) {
+            let gridX = getGridX(gridIndex);
+
+            if (p.mouseX >= gridX &&
+                p.mouseX < gridX + arg.layout.grid_width &&
+                p.mouseY >= arg.layout.title_height &&
+                p.mouseY < arg.layout.title_height + arg.layout.grid_height) {
+
+                let localX = p.mouseX - gridX;
+                let localY = p.mouseY - arg.layout.title_height;
+
+                let grid_x = p.floor(localX / arg.grid.tile_size);
+                let grid_y = p.floor(localY / arg.grid.tile_size);
+
+                if (grid_x >= 0 && grid_x < arg.grid.w && grid_y >= 0 && grid_y < arg.grid.h) {
+                    // Only update if target position actually changed
+                    if (target.x !== grid_x || target.y !== grid_y) {
+                        lastUpdateTime = currentTime;
+                        target.x = grid_x;
+                        target.y = grid_y;
+
+                        // Recompute heatmap for first grid only
+                        reset_node_grid(node_grids[0]);
+                        initializeWallPattern(node_grids[0]);
+                        dijkstra_optimized(node_grids[0], target, dist_arr.Euclidian, arg);
+
+                        // Copy distances to other grids (reuse walls)
+                        for (let y = 0; y < arg.grid.h; y++) {
+                            for (let x = 0; x < arg.grid.w; x++) {
+                                node_grids[1][y][x].dist = node_grids[0][y][x].dist;
+                                node_grids[2][y][x].dist = node_grids[0][y][x].dist;
+                            }
+                        }
+
+                        // Recompute vector fields
+                        update_vectorfield_sobel_raw(p, node_grids[0], arg);
+                        update_vectorfield_sobel_fallback(p, node_grids[1], arg);
+                        update_vectorfield_hybrid(p, node_grids[2], arg);
+
+                        needsRedraw = true;
+                    }
+                }
+                break;
+            }
+        }
+    }
+
+    // Optimized Dijkstra - local implementation with better performance
+    function dijkstra_optimized(node_grid, target, dist_arr, arg) {
+        const target_node = node_grid[target.y][target.x];
+        target_node.dist = 0;
+
+        // Simple array-based priority queue (good enough for small grids)
+        const open_list = [target_node];
+
+        while (open_list.length > 0) {
+            // Find and remove minimum
+            let minIdx = 0;
+            let minDist = open_list[0].dist;
+            for (let i = 1; i < open_list.length; i++) {
+                if (open_list[i].dist < minDist) {
+                    minDist = open_list[i].dist;
+                    minIdx = i;
+                }
+            }
+            const current = open_list[minIdx];
+            open_list[minIdx] = open_list[open_list.length - 1];
+            open_list.pop();
+
+            if (current.wasVisited) continue;
+            current.wasVisited = true;
+
+            // Check all 8 neighbors
+            for (const [dx, dy] of neighbor_pos_arr) {
+                const nx = current.x + dx;
+                const ny = current.y + dy;
+
+                if (nx < 0 || ny < 0 || nx >= arg.grid.w || ny >= arg.grid.h) continue;
+
+                const neighbor = node_grid[ny][nx];
+                if (neighbor.isWall || neighbor.wasVisited) continue;
+
+                const newDist = current.dist + dist_arr[dy + 1][dx + 1];
+
+                if (newDist < neighbor.dist) {
+                    neighbor.dist = newDist;
+
+                    // Only add if not already in list
+                    if (!open_list.includes(neighbor)) {
+                        open_list.push(neighbor);
+                    }
+                }
+            }
+        }
+    }
+
+    // Vectorfield computation methods
+
+    // Raw Sobel - no fallback for walls or out of bounds
+    function kernel_sobel_raw(node_grid, x, y, arg) {
+        let g_x = 0;
+        let g_y = 0;
+
+        // Unrolled loop for better performance (8 neighbors)
+        const w = arg.grid.w;
+        const h = arg.grid.h;
+
+        for (let i = 0; i < 8; i++) {
+            const [dx, dy] = neighbor_pos_arr[i];
+            const nx = x + dx;
+            const ny = y + dy;
+
+            // Skip if out of bounds or wall - no fallback
+            if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+
+            const neighbor = node_grid[ny][nx];
+            if (neighbor.isWall) continue;
+
+            const kx = dx + 1;
+            const ky = dy + 1;
+            g_x -= neighbor.dist * sobel_matrix.x[ky][kx];
+            g_y -= neighbor.dist * sobel_matrix.y[ky][kx];
+        }
+
+        return {x: g_x, y: g_y};
+    }
+
+    // Sobel with same distance fallback (existing implementation)
+    function kernel_sobel_fallback(node_grid, x, y, arg) {
+        let g_x = 0;
+        let g_y = 0;
+
+        const currentDist = node_grid[y][x].dist;
+        const w = arg.grid.w;
+        const h = arg.grid.h;
+
+        for (let i = 0; i < 8; i++) {
+            const [dx, dy] = neighbor_pos_arr[i];
+            const nx = x + dx;
+            const ny = y + dy;
+
+            let dist;
+            if (nx < 0 || ny < 0 || nx >= w || ny >= h) {
+                dist = currentDist; // Fallback to current node
+            } else {
+                const neighbor = node_grid[ny][nx];
+                dist = neighbor.isWall ? currentDist : neighbor.dist;
+            }
+
+            const kx = dx + 1;
+            const ky = dy + 1;
+            g_x -= dist * sobel_matrix.x[ky][kx];
+            g_y -= dist * sobel_matrix.y[ky][kx];
+        }
+
+        return {x: g_x, y: g_y};
+    }
+
+    function update_vectorfield_sobel_raw(p, node_grid, arg) {
+        for (let y = 0; y < arg.grid.h; y++) {
+            for (let x = 0; x < arg.grid.w; x++) {
+                let current_node = node_grid[y][x];
+                if (current_node.isWall) continue;
+
+                let gradient = kernel_sobel_raw(node_grid, x, y, arg);
+                let angle = p.atan2(gradient.y, gradient.x) - p.PI / 2;
+                current_node.vector_angle = angle;
+            }
+        }
+    }
+
+    function update_vectorfield_sobel_fallback(p, node_grid, arg) {
+        for (let y = 0; y < arg.grid.h; y++) {
+            for (let x = 0; x < arg.grid.w; x++) {
+                let current_node = node_grid[y][x];
+                if (current_node.isWall) continue;
+
+                let gradient = kernel_sobel_fallback(node_grid, x, y, arg);
+                let angle = p.atan2(gradient.y, gradient.x) - p.PI / 2;
+                current_node.vector_angle = angle;
+            }
+        }
+    }
+
+    // Hybrid method: Sobel with min neighbor fallback for nodes near walls
+    function update_vectorfield_hybrid(p, node_grid, arg) {
+        const w = arg.grid.w;
+        const h = arg.grid.h;
+
+        for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+                const current = node_grid[y][x];
+                if (current.isWall) continue;
+
+                // Check if any neighbor is a wall or out of bounds
+                let hasWallNeighbor = false;
+                for (let i = 0; i < 8; i++) {
+                    const [dx, dy] = neighbor_pos_arr[i];
+                    const nx = x + dx;
+                    const ny = y + dy;
+
+                    if (nx < 0 || ny < 0 || nx >= w || ny >= h) {
+                        hasWallNeighbor = true;
+                        break;
+                    }
+
+                    if (node_grid[ny][nx].isWall) {
+                        hasWallNeighbor = true;
+                        break;
+                    }
+                }
+
+                // If has wall neighbor, use min distance method
+                if (hasWallNeighbor) {
+                    let minDist = Infinity;
+                    let minDx = 0;
+                    let minDy = 0;
+
+                    for (let i = 0; i < 8; i++) {
+                        const [dx, dy] = neighbor_pos_arr[i];
+                        const nx = x + dx;
+                        const ny = y + dy;
+
+                        if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+
+                        const neighbor = node_grid[ny][nx];
+                        if (neighbor.isWall) continue;
+
+                        if (neighbor.dist < minDist) {
+                            minDist = neighbor.dist;
+                            minDx = dx;
+                            minDy = dy;
+                        }
+                    }
+
+                    current.vector_angle = p.atan2(minDy, minDx) - p.PI / 2;
+                } else {
+                    // Otherwise use Sobel with fallback
+                    const gradient = kernel_sobel_fallback(node_grid, x, y, arg);
+                    current.vector_angle = p.atan2(gradient.y, gradient.x) - p.PI / 2;
+                }
+            }
+        }
+    }
+
+    // Drawing functions
+
+    function gfx_draw_heatmap_local(p, gfx, node_grid, target, arg) {
+        gfx.clear();
+        gfx.colorMode(p.HSB);
+        gfx.noStroke();
+
+        for (let y = 0; y < arg.grid.h; y++) {
+            for (let x = 0; x < arg.grid.w; x++) {
+                let current_node = node_grid[y][x];
+
+                // Use direct dist value (no lerping)
+                if (current_node.isWall) {
+                    gfx.fill(255);
+                    gfx.rect(
+                      x * arg.grid.tile_size,
+                      y * arg.grid.tile_size,
+                      arg.grid.tile_size,
+                      arg.grid.tile_size
+                    );
+                  }
+            }
+        }
+
+        // Draw target (black)
+        gfx.colorMode(p.RGB);
+        gfx.noStroke();
+        gfx.fill(255,0,0);
+        gfx.ellipse(
+            (target.x + 0.5) * arg.grid.tile_size,
+            (target.y + 0.5) * arg.grid.tile_size,
+            arg.grid.tile_size * 0.6,
+            arg.grid.tile_size * 0.6
+        );
+    }
+
+    function gfx_draw_vectorfield_local(p, gfx, node_grid, target, arg) {
+        gfx.clear();
+        gfx.strokeWeight(arg.arrow.stroke_weight);
+        gfx.stroke(255); // Use solid white instead of HSB
+
+        gfx.push();
+        gfx.translate(arg.grid.tile_size / 2, arg.grid.tile_size / 2);
+
+        for (let y = 0; y < arg.grid.h; y++) {
+            gfx.push();
+
+            for (let x = 0; x < arg.grid.w; x++) {
+                let current_node = node_grid[y][x];
+
+                if (current_node.isWall || (x == target.x && y == target.y)) {
+                    gfx.translate(arg.grid.tile_size, 0);
+                    continue;
+                }
+
+                // Use direct angle (no lerping)
+                let angle = current_node.vector_angle;
+                gfx.push();
+                gfx.rotate(angle);
+                gfx_draw_arrow(p, gfx, arg);
+                gfx.pop();
+
+                gfx.translate(arg.grid.tile_size, 0);
+            }
+            gfx.pop();
+            gfx.translate(0, arg.grid.tile_size);
+        }
+        gfx.pop();
+    }
+  }
+
+  // @ts-ignore - p5 is loaded as a global from CDN in Layout.astro
+  setupVisibilityPause(new p5(sketch), 'fallbackComparison');
+</script>
+
+<style>
+
+</style>

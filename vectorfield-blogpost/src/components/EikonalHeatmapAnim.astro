@@ -25,6 +25,7 @@
     is_in_screen,
     reset_node_grid,
   } from '../common/utils_function';
+  import { setupVisibilityPause } from '../common/p5_utils';
 
   const sketch = (p) => {
     const arg = {
@@ -230,7 +231,7 @@
     };
   };
 
-  new p5(sketch);
+  setupVisibilityPause(new p5(sketch), 'eikonalHeatmap');
 </script>
 
 <style>

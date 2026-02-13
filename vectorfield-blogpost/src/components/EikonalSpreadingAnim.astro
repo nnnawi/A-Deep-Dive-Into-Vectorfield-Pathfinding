@@ -34,6 +34,7 @@
 
 <script>
   import { node } from '../common/solver_function';
+  import { setupVisibilityPause } from '../common/p5_utils';
 
   const arg = {
     screen: {
@@ -460,7 +461,7 @@
     };
   };
 
-  new p5(sketch);
+  setupVisibilityPause(new p5(sketch), 'eikonalSpreadingAnim');
 </script>
 
 <style>

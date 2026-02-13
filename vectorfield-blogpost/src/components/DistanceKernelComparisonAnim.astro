@@ -8,6 +8,7 @@
 <script>
 import { dist_arr } from '../common/constant';
 import { djikstra_algorithm, node } from '../common/solver_function';
+import { setupVisibilityPause } from '../common/p5_utils';
 
   const sketch = (p) => {
      const arg = {
@@ -224,7 +225,7 @@ import { djikstra_algorithm, node } from '../common/solver_function';
     }
   }  
 
-  new p5(sketch);
+  setupVisibilityPause(new p5(sketch), 'distanceKernelComparison');
 </script>
 
 <style>

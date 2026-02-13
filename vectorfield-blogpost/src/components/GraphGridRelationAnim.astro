@@ -5,6 +5,7 @@
 <div id="graphGridRelationAnim"></div>
 
 <script>
+  import { setupVisibilityPause } from '../common/p5_utils';
   const sketch = (p) => {
     let gridSize = 6;
     let nodeRadius = 15;
@@ -100,7 +101,7 @@
               p.mouseY >= y &&
               p.mouseY < y + spacing;
 
-            p.fill(isHovered ? 210 : 250);
+            p.fill(isHovered ? 210 : [247, 244, 236]);
             p.noStroke();
             p.rect(x + 1, y + 1, spacing - 2, spacing - 2);
 
@@ -251,7 +252,7 @@
           let animatedRadius = nodeRadius * scale;
 
           // Draw node circle with animation
-          p.fill(255, opacity);
+          p.fill(247, 244, 236);
           p.stroke(50, opacity);
           p.strokeWeight(2);
           p.ellipse(x, y, animatedRadius * 2, animatedRadius * 2);
@@ -470,5 +471,5 @@
     }
   };
 
-  new p5(sketch);
+  setupVisibilityPause(new p5(sketch), 'graphGridRelationAnim');
 </script>

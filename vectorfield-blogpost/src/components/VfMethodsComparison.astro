@@ -9,11 +9,15 @@ const { title = 'Vector Field Methods Comparison' } = Astro.props;
 
 <script>
   import vf_comparison_sketch from '../../../scripts/vf_methods_comparison.js';
+  import { setupVisibilityPause } from '../common/p5_utils';
 
   // Initialize p5 instance with the sketch
   const initVfMethodsComparison = () => {
     if (typeof window !== 'undefined' && window.p5) {
-      new p5((p) => vf_comparison_sketch(p, 'vf_methods_comparison_canva'));
+      setupVisibilityPause(
+        new p5((p) => vf_comparison_sketch(p, 'vf_methods_comparison_canva')),
+        'vf_methods_comparison_canva'
+      );
     }
   };
 

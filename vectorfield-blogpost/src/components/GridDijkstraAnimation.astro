@@ -17,12 +17,16 @@ const { title = 'Dijkstra Algorithm Animation' } = Astro.props;
 
 <script>
   import grid_djikstra_animation_sketch from '../../../scripts/grid_djikstra_animation.js';
+  import { setupVisibilityPause } from '../common/p5_utils';
 
   // Initialize p5 instance with the sketch
   const initGridDijkstraAnimation = () => {
     if (typeof window !== 'undefined' && window.p5) {
-      new p5((p) =>
-        grid_djikstra_animation_sketch(p, 'grid_djikstra_animation_canva')
+      setupVisibilityPause(
+        new p5((p) =>
+          grid_djikstra_animation_sketch(p, 'grid_djikstra_animation_canva')
+        ),
+        'grid_djikstra_animation_canva'
       );
     }
   };

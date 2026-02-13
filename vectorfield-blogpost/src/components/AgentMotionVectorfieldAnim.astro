@@ -35,6 +35,7 @@ import { gfx_draw_grid, gfx_draw_heatmap, gfx_draw_vectorfield } from '../common
 import { djikstra_algorithm, node } from '../common/solver_function';
 import { is_in_grid, is_in_screen, reset_node_grid } from '../common/utils_function';
 import { update_vectorfield } from '../common/vectorfield_function';
+import { setupVisibilityPause } from '../common/p5_utils';
 
   const arg = {
     screen: {
@@ -419,7 +420,7 @@ import { update_vectorfield } from '../common/vectorfield_function';
     };
   };
 
-  new p5(sketch);
+  setupVisibilityPause(new p5(sketch), 'agentMotionVectorfield');
 </script>
 
 <style>

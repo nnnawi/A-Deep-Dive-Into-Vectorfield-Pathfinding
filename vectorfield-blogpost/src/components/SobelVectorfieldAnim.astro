@@ -13,6 +13,7 @@
   import { eikonal_solver, node } from '../common/solver_function';
   import { is_in_grid, is_in_screen } from '../common/utils_function';
   import { update_vectorfield } from '../common/vectorfield_function';
+  import { setupVisibilityPause } from '../common/p5_utils';
 
   const sketch = (p) => {
     const arg = {
@@ -145,7 +146,7 @@
     };
   };
 
-  new p5(sketch);
+  setupVisibilityPause(new p5(sketch), 'sobelVectorfield');
 </script>
 
 <style></style>
