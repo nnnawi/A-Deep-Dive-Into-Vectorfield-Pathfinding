@@ -18,7 +18,8 @@
     />
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
-
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&display=swap" rel="stylesheet">
     <!-- p5.js library -->
     <script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js"></script>
 
@@ -27,8 +28,9 @@
         --color-primary: #007acc;
         --color-text: #2F2A29;
         --color-text-light: #5a6c7d;
-        --color-bg: #f7f4ec;
-        --font-body: 'Merriweather', Georgia, serif;
+        --color-bg: #f8f8f7;
+        --color-secondary: #f1f1f0;
+        --font-body: 'Merriweather', serif;
         --font-heading: "Playfair Display", serif;
       }
 
@@ -40,12 +42,12 @@
 
       body {
         font-family: var(--font-body);
-        max-width: 1000px;
+        max-width: 900px;
         margin: 0 auto;
         padding: 2rem;
         background: var(--color-bg);
         color: var(--color-text);
-        font-size: 18px;
+        
       }
 
       .container {
@@ -67,13 +69,51 @@
       .pseudo-code-container{
         font-size: 16px;
         padding: 10px 0;
+        
       }
 
       .ytb-video-container{
         display: flex;
         justify-content: center;
         padding: 25px 0;
+        position: relative;
+
+        img {
+          top: -26px;
+          position: absolute;
+          width: 665px;
+          height: 415px;
+        }
       }
+
+      .info-container{
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        background-color: #f8ecd4;
+        color: #493510;
+        border-radius: 7px;
+        padding: 20px 25px;
+        
+
+        p{
+          
+          font-size: 16px;
+          line-height: 26px;
+          padding: 0;
+          margin: 0;
+          
+        }
+
+        .title{
+          font-family: "Inter";
+          font-weight: 700;
+          letter-spacing: .9px;
+          font-size: 13px;
+          text-transform: uppercase;
+        }
+      }
+
 
       h1,
       h2,
@@ -87,31 +127,30 @@
       }
 
       h1 {
-        font-size: 70px;
+        font-size: 63px;
         line-height: 1.2;
         margin-bottom: 70px;
       }
 
       h2 {
-        font-family: "Playfair Display";
+        font-family: "Inter";
         font-size: 48px;
-        font-weight: 600;
+        font-weight: 700;
         line-height: 1.3;
-        padding-bottom: 12px;
-        margin-bottom: 28px;
-        border-bottom: 2px solid #646464;
-
+        
       }
 
       h3 {
-        font-family: "Merriweather";
-        font-size: 28px;
+        font-family: "Inter";
+        font-size: 30px;
         
       }
 
       p {
         margin: 23px 0;
-        line-height: 1.8;
+        line-height: 31px;
+        font-size: 18px;
+        
       }
 
       .title-indication{

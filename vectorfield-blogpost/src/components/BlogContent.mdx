@@ -12,6 +12,7 @@ import WeightedNeighborVectorfieldAnim from 'WeightedNeighborVectorfieldAnim.ast
 import AgentMotionVectorfieldAnim from 'AgentMotionVectorfieldAnim.astro'
 import FallbackComparison from 'FallbackComparison.astro'
 
+
 <video autoplay muted loop playsinline style="width: 100%;">
   <source src="/header-animation.mp4" type="video/mp4">
   Your browser does not support the video tag.
@@ -21,16 +22,17 @@ import FallbackComparison from 'FallbackComparison.astro'
 <div style="position: relative">
 # A Deep Dive Into <span style="color: #DF2D19; font-weight: 800;">Vectorfield</span> Pathfinding
 
-<img src="/arrow-title-red-alpha.png" style="width: 100%; position: absolute; top: .5px; right: -1px" />
+<img src="/arrow-title-red-alpha.png" style="width: 100%; position: absolute; top: 1.5px; right: -15px" />
 </div>
 
 ## Introduction
 
 Back in 2018, while building a clone of [Tanks!](https://nintendo.fandom.com/wiki/Tanks!),
-I ran into my first real pathfinding challenge. I needed a way for multiple enemy tanks to chase the player around while dodging walls.
+I ran into my first pathfinding challenge. I needed a way for multiple enemy tanks to chase the player around while dodging walls.
 After digging into the topic, I came across **goal-based vector pathfinding** _(or simply Vector Field Pathfinding - VFP)_.
-And it just clicked - it did exactly what I needed, but in a way that felt more visual & intuitive than $$A^*$$ or Dijkstra.
-I liked it so much that I even made a video about it in 2020 — just to share how cool and practical this approach really is.
+
+It did exactly what I needed, but in a way that felt more visual & intuitive than $$A^*$$ or Dijkstra.
+I liked it so much that I even made a video about it in 2020 just to share how cool and practical this approach really is.
 
 <div class="ytb-video-container">
 <iframe
@@ -47,18 +49,19 @@ I liked it so much that I even made a video about it in 2020 — just to share h
   allow="autoplay; encrypted-media"
   allowfullscreen
 ></iframe>
+<img src="/ytb-frame.png" />
 </div>
 
 The video ended up doing very well for a niche subject! It sparked a lot of great discussions in the comments — _people sharing alternative approaches, asking smart questions, or diving deeper into the method_.
 
-But looking back, my younger self definitely made a few mistakes. There were some unverified claims, oversimplified explanations, and a lot I just didn’t know back then. Now, more than six years later, I finally decided to revisit this topic — something I’d been wanting to do for a long time, especially as the comments kept rolling in over the years.
+But looking back, my younger self definitely made a few mistakes. There were some unverified claims, oversimplified explanations, and a lot I just didn’t know back then.
+More than six years later, I finally decided to revisit this topic, something I’d been wanting to do for a long time, especially as the comments kept rolling in over the years.
 
-This is what this blogpost is about: a deep dive into vector field pathfinding. <br/>
+This is what this post is about: a deep dive into vector field pathfinding. <br/>
 How it works, the many ways you can build and tweak it to fit different needs and where it fits in the broader landscape of pathfinding algorithms.
 
 <br />
 <br />
-
 
 ## What is pathfinding ?
 
@@ -66,7 +69,7 @@ Before jumping straight into VFP _(Vector Field Pathfinding)_, it’s worth taki
 
 <br />
 
-### Defining the problem _(a bit of graph theory)_ :
+### Defining the problem (a bit of graph theory) :
 
 At its core, pathfinding is a **graph theory** problem. A graph consists of a set of **vertices** $V$ connected by a set of **edges** $E$ _(ie. pairs of vertices)_.
 Graphs can also be weighted, meaning each edge has an associated value _(or weight)_ that can represent **a distance, a cost, or any other metrics**.
@@ -96,7 +99,7 @@ Graphs can also be weighted, meaning each edge has an associated value _(or weig
 We can thus define **pathfinding** as finding the **shortest path between two vertices of a graph**,
 or more precisely the path $P^*$ between two vertices $A, B \in V$ of a graph $G = (V,E)$ such that the sum of the weights of its constituent edges is minimized.
 
-<div class="latex-animation-container" style="margin-top: 40px">
+<div class="latex-animation-container" style="margin-top: 40px; gap: 20px;">
   <div style="display: flex; flex-direction: column"> 
       <span>
       $$
@@ -123,7 +126,7 @@ or more precisely the path $P^*$ between two vertices $A, B \in V$ of a graph $G
 
 <br/>
 
-### Setting up our pathfinding environment :
+### Setting-up our pathfinding environment :
 
 In this post, we'll explore a specific type of graph: the **8-neighbor grid graph**, _(also known as a [King's graph](https://en.wikipedia.org/wiki/King%27s_graph))_.
 We can think of it as **a 2D grid** where each tile connects to all its 8 surrounding neighbors—like how a king moves in chess.
@@ -142,8 +145,13 @@ each connection (edge) carries **a weight determined by a distance kernel**—a 
 With our 2D grid in place, we can now define which tiles are **walkable** and which act as **walls**.
 In graph terms, walkable tiles stay as nodes while walls are simply removed from the graph entirely.
 
-The **8-neighbor grid graph approach** provides a **universal way to discretize any 2D space** and apply pathfinding—_whether for robotic, video games, etc..._
-Therefore finding the shortest path between two tiles while avoiding walls becomes finding the shortest path between two vertices in our modified graph.
+<div class="info-container">
+<div class="title">Why are we doing this ?</div>
+<p>
+  The **8-neighbor grid graph approach** provides a **universal way to discretize any 2D space** and apply pathfinding —_whether for robotic, video games, etc..._
+  Therefore finding the shortest path between two tiles while avoiding walls becomes finding the shortest path between two vertices in our modified graph.
+</p>
+</div>
 
 <br />
 <br/>
@@ -152,19 +160,22 @@ Therefore finding the shortest path between two tiles while avoiding walls becom
 
 If you are already familiar with classic pathfinding algorithm, you can skip directly to the VFP implementation.
 If not, it’s helpful to review one of the most well-known and foundational pathfinding algorithms: **Dijkstra’s algorithm**.
-Understanding how Dijkstra’s algorithm works provides **a solid framework** for the general steps involved in any pathfinding method.
 
-Vector field pathfinding builds directly on each of these steps, which is why we begin our study here.
+Understanding how Dijkstra’s algorithm works provides **a solid framework** for the general steps involved in any pathfinding method.
+VFP builds directly on each of these steps, which is why we begin our study here.
 Similarly, algorithms like $A^\star$ also extend Dijkstra’s approach, though they serve different purposes.
 
 <br/>
 
 ### Initialisation
 
-The algorithm starts by preparing each node.
-All nodes are given **a tentative distance** _(to the starting node)_ of infinity _(ie. $\text{dist}[v] = \infty$)_, reflecting that we don’t yet know how to reach them.
-Their $\text{previous}[v]$ value is also initialized to $\text{undefined}$ — this will let us **retrace the shortest path** later.
-The starting node _(or source)_ is given a distance of $0$, since it’s the point of origin.
+The algorithm starts by preparing each node :
+
+- All nodes are given **a tentative distance** to the starting node of **infinity** (ie. $\text{dist}[v] = \infty$), reflecting that we don’t yet know how to reach them.
+
+- Their **previous node** value is also initialized to $\text{undefined}$ (ie. $\text{previous}[v] = \text{undefined}$ ) — this will let us **retrace the shortest path** later.
+
+- The starting node _(or source)_ is given a distance of $0$, since it’s the point of origin.
 
 Afterward, all nodes are placed in a set $Q$, which represents the **pool of nodes we still need to process.**
 

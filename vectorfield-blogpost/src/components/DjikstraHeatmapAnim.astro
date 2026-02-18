@@ -5,35 +5,31 @@
 <div class="djikstra-container">
   <div id="djikstraHeatmapAnim"></div>
   <div class="controls">
-    <span>Distance map from Djikstra</span>
-    <div class="header">
-      <p>For each distance, we assign a specific color and use it to fill a tile.
-        The smooth change of colors across tiles visually represents the distance heatmap.</p>
-        <br>
-      <p>Click & drag your mouse across the canva to add / remove walls.</p>
-    </div>
+    <!-- <div class="controls-header">
+      <p class="controls-title">Dijkstra Distance Map</p>
+      <p>Each tile is colored by its distance to the cursor. Move your mouse over the canvas to update the target, or drag to draw walls.</p>
+    </div> -->
+
     <div class="single-control">
       <span>Distance Kernel</span>
       <div class="distance-selector-container">
-        <button class="dist-btn" data-distance="Euclidian">Euclidian</button>
-        <button class="dist-btn" data-distance="Tchebishev">Tchebishev</button>
+        <button class="dist-btn" data-distance="Euclidian">Euclidean</button>
+        <button class="dist-btn" data-distance="Tchebishev">Chebyshev</button>
         <button class="dist-btn" data-distance="Manhattan">Manhattan</button>
       </div>
     </div>
     <div class="single-control">
-
-      <span>Visualization Mode</span>
+      <span>Color Mode</span>
       <div class="mode-selector-container">
-        <button class="mode-btn" data-mode="hue">HUE heatmap</button>
+        <button class="mode-btn" data-mode="gradient">Gradient</button>
         <button class="mode-btn" data-mode="grayscale">Grayscale</button>
       </div>
     </div>
-     <div class="single-control">
-
-      <span>Show Distances</span>
+    <div class="single-control">
+      <span>Distance Labels</span>
       <div class="show-distance-container">
-        <button class="show-btn" data-show="true">ON</button>
-        <button class="show-btn" data-show="false">OFF</button>
+        <button class="show-btn" data-show="true">On</button>
+        <button class="show-btn" data-show="false">Off</button>
       </div>
     </div>
   </div>
@@ -52,12 +48,12 @@ import {
 
   const arg = {
     screen: {
-      w: 1000,
+      w: 500,
       h: 450,
     },
 
     grid: {
-      tile_size: 30,
+      tile_size: 25,
       w: 0,
       h: 0,
       stroke: 100,
@@ -67,7 +63,7 @@ import {
 
   var node_grid;
   var current_distance = 'Tchebishev'; // Default distance metric
-  var heatmap_mode = 'hue'; // Default heatmap mode
+  var heatmap_mode = 'gradient'; // Default heatmap mode
   var show_values = false; // Default values display
 
   var is_dragging = false;
@@ -83,6 +79,9 @@ import {
 
   const sketch = (p) => {
     p.setup = () => {
+      const container = document.getElementById('djikstraHeatmapAnim');
+      arg.screen.w = container.offsetWidth;
+
       let canvas = p.createCanvas(arg.screen.w, arg.screen.h);
       canvas.parent('djikstraHeatmapAnim');
 
@@ -179,7 +178,7 @@ import {
     p.draw = () => {
       p.clear();
       p.image(gfx_heatmap, 0, 0);
-      // p.image(gfx_grid, 0, 0);
+      p.image(gfx_grid, 0, 0);
 
       for (let y = 0; y < node_grid.length; y++) {
         for (let x = 0; x < node_grid[0].length; x++) {
@@ -189,10 +188,9 @@ import {
             let current_node = node_grid[y][x];
             if (!current_node.isWall && current_node.dist !== Infinity) {
               let textColor;
-              if (heatmap_mode === 'hue') {
-                let h = (current_node.display_dist * 10) % 360;
-                // Bright hues (yellow, green, cyan) get black text, others get white
-                textColor = h > 40 && h < 190 ? 0 : 255;
+              if (heatmap_mode === 'gradient') {
+                let t = Math.min(current_node.display_dist / 25, 1);
+                textColor = t < 0.35 ? 0 : 255;
               } else {
                 let brightness = p.map(
                   current_node.display_dist,
@@ -225,7 +223,7 @@ import {
         target,
         arg,
         heatmap_mode,
-        heatmap_mode === 'hue' ? 10 : 25
+        25
       );
     };
 
@@ -287,30 +285,65 @@ import {
 <style>
   .djikstra-container {
     display: flex;
-    flex-direction: row;
-    background-color: #eeeadf;
-    padding: 20px;
-    border-radius: 15px;
-
-    gap: 20px;
-  }
-
-  .single-control{
-    display: flex;
     flex-direction: column;
-    gap: 10px;
+    align-items: center;
+    background-color: var(--color-secondary);
+    padding: 20px;
+    padding-bottom: 30px;
+    border-radius: 12px;
+    gap: 20px;
+    /* border: 1.2px solid #e5e0d4; */
+    box-shadow: rgba(0, 0, 0, 0.117) 0px 1px 4px;
   }
 
-  #djikstraHeatmapAnim{
+  .djikstra-title{
+    font-family: "Inter";
+    font-size: 30px;
+    font-weight: 700;
+  }
+
+  #djikstraHeatmapAnim {
     overflow: hidden;
-    border-radius: 10px;
+    border-radius: 8px;
+    width: 100%;
+    height: fit-content;
+    
+    /* border: 2px solid #e5e0d4; */
+  }
+
+  #djikstraHeatmapAnim canvas {
+    display: block;
   }
 
   .controls {
-    flex: 1;
+    display: flex;
+    flex-direction: row;
+    gap: 50px;
+
+  }
+
+  .controls-header {
+    background-color: #e4e4d9;
+    border-radius: 8px;
+    padding: 14px 18px;
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 8px;
+  }
+
+  .controls-title {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 700;
+    color: #3d3a36;
+    letter-spacing: 0.01em;
+    margin: 0;
+  }
+
+  .single-control {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
   }
 
   .distance-selector-container,
@@ -319,63 +352,47 @@ import {
     width: fit-content;
     display: flex;
     flex-direction: row;
-    justify-content: space-between;
-    margin-bottom: 15px;
-    border: 2px solid #bfbbb0;
-    border-radius: 7px;
+    /* background-color: #eaeaea; */
+    outline: 2px solid #dbd8d4;
+    border-radius: 8px;
+    padding: 2px;
   }
-
-  .show-distance-container{
-    width: fit-content
-  }
-
-  .checkbox-container {
-    margin-top: 20px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: white;
-  }
-
-  .header{
-    background-color: #ded9ce;
-    border-radius: 5px;
-    padding: 20px 25px;
-    color: #615f59
-  }
-
-  .checkbox-container input {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-  }
-  
 
   span {
-    font-size: 18px;
-    margin-left: 1px;
+    display: block;
+    font-family: var(--font-body);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #8a8178;
   }
 
   p {
     margin: 0;
-    font-size: 14px;
-    line-height: 1.4;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #615f59;
   }
 
   button {
-    font-family: "Merriweather";
-    color: var(--color-text);
-    padding: 8px 10px;
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: #615f59;
+    padding: 6px 13px;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: background 0.15s;
     border: none;
     background: none;
-    margin: 1px;
-    border-radius: 5px;
+    border-radius: 6px;
+  }
+
+  button:hover {
+    background-color: rgba(0, 0, 0, 0.06);
   }
 
   button.active {
-    background-color: var(--color-text);
-    color: #eeeadf; 
+    background-color: #3d3a36;
+    color: #eeeadf;
   }
 </style>

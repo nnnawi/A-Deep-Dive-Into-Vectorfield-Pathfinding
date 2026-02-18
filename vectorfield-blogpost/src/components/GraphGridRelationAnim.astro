@@ -10,9 +10,9 @@
     let gridSize = 6;
     let nodeRadius = 15;
     let spacing = 50;
-    let offsetX = 40;
+    let offsetX = 60;
     let offsetY = 35;
-    let graphOffsetX = 480;
+    let graphOffsetX = 450;
 
     // Track which cells are walls (true = wall, false = open)
     let wallArray = Array(gridSize)
@@ -101,7 +101,7 @@
               p.mouseY >= y &&
               p.mouseY < y + spacing;
 
-            p.fill(isHovered ? 210 : [247, 244, 236]);
+            p.fill(isHovered ? 210 : [248, 248, 247]);
             p.noStroke();
             p.rect(x + 1, y + 1, spacing - 2, spacing - 2);
 
@@ -252,7 +252,7 @@
           let animatedRadius = nodeRadius * scale;
 
           // Draw node circle with animation
-          p.fill(247, 244, 236);
+          p.fill(248, 248, 247);
           p.stroke(50, opacity);
           p.strokeWeight(2);
           p.ellipse(x, y, animatedRadius * 2, animatedRadius * 2);

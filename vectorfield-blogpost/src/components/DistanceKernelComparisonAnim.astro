@@ -7,8 +7,8 @@
 
 <script>
 import { dist_arr } from '../common/constant';
-import { djikstra_algorithm, node } from '../common/solver_function';
 import { setupVisibilityPause } from '../common/p5_utils';
+import { djikstra_algorithm, node } from '../common/solver_function';
 
   const sketch = (p) => {
      const arg = {
@@ -109,7 +109,7 @@ import { setupVisibilityPause } from '../common/p5_utils';
             p.image(gfx_heatmaps[gridIndex], 0, 0);
 
             // Draw grid lines
-            // drawGrid(p, arg);
+            drawGrid(p, arg);
             p.pop();
         }
 
@@ -153,7 +153,7 @@ import { setupVisibilityPause } from '../common/p5_utils';
     }
 
     function drawGrid(p, arg) {
-        p.stroke(60);
+        p.stroke(0,0,0,120);
         p.strokeWeight(1);
         p.noFill();
 
