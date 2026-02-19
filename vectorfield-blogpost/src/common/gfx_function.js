@@ -69,7 +69,7 @@ export function gfx_draw_heatmap(p, gfx, node_grid, target, arg, mode = 'hue', c
                 continue;
             } else {
                 if (mode === 'hue') {
-                    gfx.fill((current_node.display_dist * colorIntensity) % 360, 255, 100);
+                    gfx.fill((current_node.display_dist * 5) % 360, 255, 100);
                 } else if (mode === 'gradient') {
                     let t = Math.min(current_node.display_dist / colorIntensity, 1);
                     let [r, g, b] = gradient_color(t);

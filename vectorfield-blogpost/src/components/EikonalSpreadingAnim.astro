@@ -2,47 +2,45 @@
 // Eikonal Spreading Animation
 ---
 
-<div class="container">
+<div class="eikonal-container">
   <div id="eikonalSpreadingAnim"></div>
   <div class="controls">
-    <span>Animation Progress</span>
-    <div class="slider-wrapper">
-      <input
-        type="range"
-        id="time-slider"
-        min="0"
-        max="100"
-        value="0"
-        step="1"
-      />
-      <div class="value-display">Step: <span id="time-value">0</span></div>
+    <div class="single-control">
+      <span>Animation Progress</span>
+      <div class="slider-wrapper">
+        <input
+          type="range"
+          id="time-slider"
+          min="0"
+          max="100"
+          value="0"
+          step="1"
+        />
+        
+      </div>
     </div>
 
-    <span>Utility</span>
-    <div class="button-group">
-      <button id="change-seed-btn">Change Wall Seed</button>
-      <button id="erase-all-btn">Erase All Walls</button>
-    </div>
-
-    <span>Visualization Mode</span>
-    <div class="mode-selector-container">
-      <button class="mode-btn" data-mode="hue">Hue heatmap</button>
-      <button class="mode-btn" data-mode="grayscale">Grayscale</button>
+    <div class="single-control">
+      <span>Utility</span>
+      <div class="button-group">
+        <button id="change-seed-btn">Randomize</button>
+        <button id="erase-all-btn">Erase Walls</button>
+      </div>
     </div>
   </div>
 </div>
 
 <script>
-  import { node } from '../common/solver_function';
   import { setupVisibilityPause } from '../common/p5_utils';
+import { node } from '../common/solver_function';
 
   const arg = {
-    screen: {
-      w: 600,
-      h: 500,
+  screen: {
+      w: 500,
+      h: 450,
     },
     grid: {
-      tile_size: 10,
+      tile_size: 15,
       w: 0,
       h: 0,
     },
@@ -54,13 +52,14 @@
   var timeSteps = [];
   var currentTimeStep = 0;
   var maxTimeSteps = 0;
-  var colorScheme = 'hue';
-
   var is_dragging = false;
   var wallpen_state = true;
 
   const sketch = (p) => {
     p.setup = () => {
+      const container = document.getElementById('djikstraHeatmapAnim');
+      arg.screen.w = container.offsetWidth;
+
       let canvas = p.createCanvas(arg.screen.w, arg.screen.h);
       canvas.parent('eikonalSpreadingAnim');
 
@@ -87,15 +86,12 @@
 
     function setupUIListeners() {
       const timeSlider = document.getElementById('time-slider');
-      const timeValue = document.getElementById('time-value');
       const changeSeedBtn = document.getElementById('change-seed-btn');
       const eraseAllBtn = document.getElementById('erase-all-btn');
-      const modeButtons = document.querySelectorAll('.mode-btn');
 
       timeSlider.addEventListener('input', (e) => {
         const value = parseInt(e.target.value);
         currentTimeStep = Math.floor((value / 100) * (maxTimeSteps - 1));
-        timeValue.textContent = currentTimeStep;
         updateHeatmapFromTimeStep();
       });
 
@@ -113,16 +109,7 @@
         reSolveAndResetUI();
       });
 
-      modeButtons.forEach((btn) => {
-        if (btn.getAttribute('data-mode') === colorScheme)
-          btn.classList.add('active');
-        btn.addEventListener('click', () => {
-          colorScheme = btn.getAttribute('data-mode');
-          modeButtons.forEach((b) => b.classList.remove('active'));
-          btn.classList.add('active');
-          updateHeatmapFromTimeStep();
-        });
-      });
+
     }
 
     function resetGrid() {
@@ -137,9 +124,7 @@
       solveEikonalWithTimeSteps();
       currentTimeStep = 0;
       const timeSlider = document.getElementById('time-slider');
-      const timeValue = document.getElementById('time-value');
       timeSlider.value = 0;
-      timeValue.textContent = '0';
       updateHeatmapFromTimeStep();
     }
 
@@ -368,15 +353,9 @@
           } else {
             const normalizedDist =
               maxDist > 0 ? current_node.dist / maxDist : 0;
-            if (colorScheme === 'grayscale') {
-              gfx_heatmap.colorMode(p.RGB);
-              const brightness = Math.floor(255 * (1 - normalizedDist));
-              gfx_heatmap.fill(brightness);
-            } else {
-              gfx_heatmap.colorMode(p.HSB);
-              const hue = 240 - normalizedDist * 240;
-              gfx_heatmap.fill(hue, 100, 90);
-            }
+            gfx_heatmap.colorMode(p.HSB);
+            const hue = 240 - normalizedDist * 240;
+            gfx_heatmap.fill(hue, 100, 90);
           }
           gfx_heatmap.noStroke();
           gfx_heatmap.rect(
@@ -465,108 +444,99 @@
 </script>
 
 <style>
-  .container {
+  .eikonal-container {
     display: flex;
-    flex-direction: row;
-    gap: 30px;
-    align-items: flex-start;
-    margin: 20px 0;
-    padding: 20px;
-    border-radius: 8px;
-    color: white;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 20px;
+    padding-bottom: 20px;
+    border-radius: 12px;
+    gap: 20px;
   }
 
   #eikonalSpreadingAnim {
-    line-height: 0;
-    background-color: #1a1a1a;
-    background-image:
-      linear-gradient(45deg, #222 25%, transparent 25%),
-      linear-gradient(-45deg, #222 25%, transparent 25%),
-      linear-gradient(45deg, transparent 75%, #222 75%),
-      linear-gradient(-45deg, transparent 75%, #222 75%);
-    background-size: 20px 20px;
-    background-position:
-      0 0,
-      0 10px,
-      10px -10px,
-      -10px 0px;
-    border-radius: 4px;
-    overflow: hidden;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    border-radius: 7px;
+    width: 100%;
+    height: fit-content;
+    box-shadow: rgba(0, 0, 0, 0.151) 0px 0px 5px;
+  }
+
+  #eikonalSpreadingAnim canvas {
+    display: block;
   }
 
   .controls {
-    flex: 1;
     display: flex;
-    flex-direction: column;
-    gap: 15px;
-    min-width: 250px;
+    flex-direction: row;
+    gap: 50px;
+    flex-wrap: wrap;
   }
 
-  span {
-    display: block;
-    color: #888;
-    font-size: 0.8em;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-bottom: 5px;
+  .single-control {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .mode-selector-container,
+  .button-group {
+    width: fit-content;
+    display: flex;
+    flex-direction: row;
+    outline: 2px solid #dbd8d4;
+    border-radius: 8px;
+    padding: 2px;
   }
 
   .slider-wrapper {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    background: #2a2a2a;
-    padding: 12px;
-    border-radius: 6px;
+    gap: 6px;
+    outline: 2px solid #dbd8d4;
+    border-radius: 8px;
+    padding: 8px 12px;
   }
 
   input[type='range'] {
-    width: 100%;
+    width: 160px;
     cursor: pointer;
+    accent-color: #3d3a36;
   }
 
   .value-display {
-    text-align: right;
-    font-family: monospace;
-    font-size: 0.9em;
-    color: #4caf50;
+    font-family: "Inter", monospace;
+    font-size: 11px;
+    color: #615f59;
   }
 
-  .button-group,
-  .mode-selector-container {
-    display: flex;
-    gap: 10px;
-    width: 100%;
+  span {
+    display: block;
+    font-family: "Inter";
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--font-body);
   }
 
   button {
-    flex: 1;
-    background: #333;
-    border: 1px solid #444;
-    color: white;
-    padding: 10px;
+    font-family: "Inter";
+    font-size: 13px;
+    color: #615f59;
+    padding: 6px 13px;
     cursor: pointer;
-    font-size: 0.9em;
-    border-radius: 4px;
-    transition: all 0.2s ease;
+    transition: background 0.15s;
+    border: none;
+    background: none;
+    border-radius: 6px;
   }
 
   button:hover {
-    background: #444;
-    border-color: #555;
+    background-color: rgba(0, 0, 0, 0.06);
   }
 
   button.active {
-    background: #007aff;
-    border-color: #0056b3;
-    color: white;
-  }
-
-  @media (max-width: 900px) {
-    .container {
-      flex-direction: column;
-      align-items: center;
-    }
+    background-color: #3d3a36;
+    color: #eeeadf;
   }
 </style>

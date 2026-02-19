@@ -189,12 +189,13 @@ $$
 &\quad \quad \text{dist}[v] = \infty \quad \textcolor{gray}{\text{// Initial distance from source to vertex } v \text{ is set to infinite}} \\
 &\quad \quad \text{previous}[v] = \text{undefined} \quad \textcolor{gray}{\text{// Previous node in optimal path from source}} \\
 &\quad \text{dist}[\text{source}] = 0 \quad \textcolor{gray}{\text{// Distance from source to source}} \\
-&\quad Q = \text{the set of all nodes in Graph} \quad \textcolor{gray}{\text{// all nodes in the graph are unoptimized - thus are in } Q}
+&\quad Q = \text{the set of all nodes in Graph}
 \end{aligned}
 \end{array}
 $$
 </div>
 
+<br/>
 <br/>
 
 ### Main loop
@@ -231,7 +232,7 @@ $$
 \textbf{Dijkstra Neighbor Evaluation \& Distance Update (Pseudo-code)} \\
 \hline \\
 \begin{aligned}
-&\textbf{for each } \text{neighbor } v \text{ of } u: \\
+&\quad \textbf{for each } \text{neighbor } v \text{ of } u: \\
 &\quad \textcolor{gray}{\text{// where } v \text{ has not yet been removed from } Q} \\
 &\quad \text{alt} = \text{dist}[u] + \text{dist\_between}(u, v) \\
 &\quad \textbf{if } \text{alt} < \text{dist}[v]: \quad \textcolor{gray}{\text{// Relax } (u,v)} \\
@@ -247,48 +248,23 @@ This process essentially spreads a “wavefront” of shortest distances to the 
 When the algorithm finishes, each node stores its distance to the target and the next neighbor to reach it. 
 To find the shortest path from any node, simply follow these neighbors step by step until you reach the target.  
 
+<div class="info-container">
+<div class="title">Details & Implementation tips</div>
+<p>
+  Many **different implementations**   of the Djikstra Algorithm exist.
+  I chose this one since it’s one of the simplest to understand, especially for grid-based pathfinding.
+  More efficient implementations exist such as using a **binary heap** to improve time complexity, particularly for sparse graphs.
 <br/>
-
-### Djikstra algorithm pseudo-code and implementation example :
-
-Here’s the full pseudo-code for this version of Dijkstra’s algorithm, along with a plain JavaScript implementation.
-Since we’re working with an 8-neighbor grid, the graph is stored as a 2D array where each cell is a Node object—a custom class built for this project.
-Of course, this is just one way to represent a graph in code. Other common formats include adjacency matrices or adjacency lists for instance, depending on the problem’s needs and the kind of operations you want to optimize for.
-<div class="algorithm-content" style="font-size: 14px">
-$$
-\begin{align*}
-&\textbf{function } \text{Dijkstra}(\text{Graph}, \text{source}): \\
-&\quad \textbf{for each } \text{vertex } v \text{ in Graph}: \quad \textcolor{gray}{\text{// Initialization}} \\
-&\quad \quad \text{dist}[v] = \infty \quad \textcolor{gray}{\text{// initial distance from source to vertex } v \text{ is set to infinite}} \\
-&\quad \quad \text{previous}[v] = \text{undefined} \quad \textcolor{gray}{\text{// Previous node in optimal path from source}} \\
-&\quad \text{dist}[\text{source}] = 0 \quad \textcolor{gray}{\text{// Distance from source to source}} \\
-&\quad Q = \text{the set of all nodes in Graph} \quad \textcolor{gray}{\text{// all nodes in the graph are unoptimized - thus are in } Q} \\
-&\quad \textbf{while } Q \textbf{ is not empty}: \quad \textcolor{gray}{\text{// main loop}} \\
-&\quad \quad u = \text{node in } Q \text{ with smallest dist}[\cdot] \\
-&\quad \quad \text{remove } u \text{ from } Q \\
-&\quad \quad \textbf{for each } \text{neighbor } v \text{ of } u: \quad \textcolor{gray}{\text{// where } v \text{ has not yet been removed from } Q.} \\
-&\quad \quad \quad \text{alt} = \text{dist}[u] + \text{dist_between}(u, v) \\
-&\quad \quad \quad \textbf{if } \text{alt} < \text{dist}[v] \quad \textcolor{gray}{\text{// Relax } (u,v)} \\
-&\quad \quad \quad \quad \text{dist}[v] = \text{alt} \\
-&\quad \quad \quad \quad \text{previous}[v] = u \\
-&\quad \textbf{return } \text{previous}[ \;]
-\end{align*}
-$$
+  Note also that this version runs until all nodes are visited. 
+  In practice, if you only need the path to a target node, you can stop once it’s reached. 
+  Also instead of initializing the queue with all nodes, another common approach is to start with only the source node and add neighbors to the queue as they are discovered.
+</p>
 </div>
 
-Note that I refer to this version of Dijkstra’s algorithm because many variations exist.
-I chose this one because it’s one of the simplest to follow and understand, especially in the context of grid-based pathfinding.
-That said, Dijkstra’s algorithm can be implemented in much more efficient ways—like using a Fibonacci heap to improve time complexity, which is especially useful on sparse graphs (even if that’s not quite our case here).
-
-Another thing worth mentioning is that this version runs until all nodes are visited.
-But in practice, if you’re only interested in the path to a specific target node, you can stop the algorithm as soon as that target is reached.
-Also, while we start here by filling the queue with all nodes from the beginning, there’s a common variation where you start with just the source node.
-If you go that route, just make sure to add neighboring nodes to the queue as you visit them—since they won’t be preloaded like in this version.
-
 <br/>
 <br/>
 
-## How to construct Vectorfield Pathfinding
+## How to construct VFP
 
 As mentioned earlier, vectorfield pathfinding builds directly on the Dijkstra algorithm. It reuses the two fundamental steps of Dijkstra’s method to perform pathfinding on a grid or graph with obstacles:
 
@@ -301,7 +277,7 @@ The key innovation in vectorfield pathfinding lies in how the second step is int
 We’ll see that even the first step — building the heatmap — can be adapted in vectorfield pathfinding. This opens the door to greater control and customization, allowing the algorithm to be tailored to specific constraints or use cases.
 
 
-### Step - 1 : Building the grid/graph heatmap :
+### Step 1 : Building the distance heatmap :
 
 #### Using the Djisktra algorithm
 
@@ -317,7 +293,11 @@ One important customization at this stage involves the choice of distance kernel
 As mentioned earlier, the distances between a node and its eight neighbors are determined by a kernel or weight matrix.
 By selecting different distance matrices, we can control how distances are accumulated — which directly affects the shape of the heatmap and the resulting behavior of the pathfinding.
 
-<DistanceKernelComparisonAnim/>
+<img src="/distance_kernel_exp.png" style="width:105%; position: relative; left: -15px"/>
+
+<br/>
+<br/>
+<br/>
 
 #### Using the Eikonal equation
 
