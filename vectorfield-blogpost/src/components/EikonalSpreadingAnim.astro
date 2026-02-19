@@ -24,14 +24,14 @@
       <span>Utility</span>
       <div class="button-group">
         <button id="change-seed-btn">Randomize</button>
-        <button id="erase-all-btn">Erase Walls</button>
       </div>
     </div>
   </div>
 </div>
 
 <script>
-  import { setupVisibilityPause } from '../common/p5_utils';
+  import { gfx_draw_grid } from '../common/gfx_function';
+import { setupVisibilityPause } from '../common/p5_utils';
 import { node } from '../common/solver_function';
 
   const arg = {
@@ -43,11 +43,14 @@ import { node } from '../common/solver_function';
       tile_size: 15,
       w: 0,
       h: 0,
+      stroke: 200,
+      stroke_weight: 1,
     },
   };
 
   var node_grid;
-  var gfx_heatmap;
+  var gfx_grid: any;
+  var gfx_heatmap: any;
   var target = { x: 0, y: 0 };
   var timeSteps = [];
   var currentTimeStep = 0;
@@ -58,7 +61,7 @@ import { node } from '../common/solver_function';
   const sketch = (p) => {
     p.setup = () => {
       const container = document.getElementById('djikstraHeatmapAnim');
-      arg.screen.w = container.offsetWidth;
+      arg.screen.w = container.offsetWidth + 20;
 
       let canvas = p.createCanvas(arg.screen.w, arg.screen.h);
       canvas.parent('eikonalSpreadingAnim');
@@ -77,6 +80,9 @@ import { node } from '../common/solver_function';
       target.y = p.floor(arg.grid.h / 2);
       node_grid[target.y][target.x].isWall = false;
 
+      gfx_grid = p.createGraphics(arg.screen.w, arg.screen.h);
+      gfx_draw_grid(p, gfx_grid, arg);
+
       gfx_heatmap = p.createGraphics(arg.screen.w, arg.screen.h);
       solveEikonalWithTimeSteps();
       updateHeatmapFromTimeStep();
@@ -87,7 +93,6 @@ import { node } from '../common/solver_function';
     function setupUIListeners() {
       const timeSlider = document.getElementById('time-slider');
       const changeSeedBtn = document.getElementById('change-seed-btn');
-      const eraseAllBtn = document.getElementById('erase-all-btn');
 
       timeSlider.addEventListener('input', (e) => {
         const value = parseInt(e.target.value);
@@ -103,13 +108,6 @@ import { node } from '../common/solver_function';
         node_grid[target.y][target.x].isWall = false;
         reSolveAndResetUI();
       });
-
-      eraseAllBtn.addEventListener('click', () => {
-        resetGrid();
-        reSolveAndResetUI();
-      });
-
-
     }
 
     function resetGrid() {
@@ -349,13 +347,22 @@ import { node } from '../common/solver_function';
 
           if (current_node.isWall) {
             gfx_heatmap.colorMode(p.RGB);
-            gfx_heatmap.fill(50);
+            gfx_heatmap.fill(47, 42, 41); // --color-bg
           } else {
             const normalizedDist =
               maxDist > 0 ? current_node.dist / maxDist : 0;
-            gfx_heatmap.colorMode(p.HSB);
-            const hue = 240 - normalizedDist * 240;
-            gfx_heatmap.fill(hue, 100, 90);
+            
+            if(normalizedDist > 0){
+
+              gfx_heatmap.colorMode(p.HSB);
+              const hue = 240 - normalizedDist * 240;
+              gfx_heatmap.fill(hue, 100, 90);
+            }
+            else{
+              gfx_heatmap.colorMode(p.RGB);
+              gfx_heatmap.fill(248, 248, 247);
+
+            }
           }
           gfx_heatmap.noStroke();
           gfx_heatmap.rect(
@@ -368,7 +375,7 @@ import { node } from '../common/solver_function';
       }
 
       gfx_heatmap.colorMode(p.RGB);
-      gfx_heatmap.fill(255, 255, 255);
+      gfx_heatmap.fill(255, 0, 0);
       gfx_heatmap.ellipse(
         (target.x + 0.5) * arg.grid.tile_size,
         (target.y + 0.5) * arg.grid.tile_size,
@@ -397,8 +404,9 @@ import { node } from '../common/solver_function';
     }
 
     p.draw = () => {
-      p.clear();
+      
       p.image(gfx_heatmap, 0, 0);
+      // p.image(gfx_grid, 0, 0);
     };
 
     p.mousePressed = () => {
@@ -456,7 +464,9 @@ import { node } from '../common/solver_function';
 
   #eikonalSpreadingAnim {
     border-radius: 7px;
+    overflow: hidden;
     width: 100%;
+    
     height: fit-content;
     box-shadow: rgba(0, 0, 0, 0.151) 0px 0px 5px;
   }
@@ -498,7 +508,7 @@ import { node } from '../common/solver_function';
   }
 
   input[type='range'] {
-    width: 160px;
+    width: 260px;
     cursor: pointer;
     accent-color: #3d3a36;
   }
