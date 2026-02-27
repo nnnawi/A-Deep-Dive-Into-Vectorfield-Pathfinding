@@ -2,28 +2,36 @@
 // Agent Motion in Vector Field
 ---
 
-<div class="container">
+<div class="agent-container">
   <div id="agentMotionVectorfield"></div>
   <div class="controls">
-    <span>Motion Type</span>
-    <div class="motion-selector-container">
-      <button class="motion-btn" data-motion="normal">Normal</button>
-      <button class="motion-btn" data-motion="lerp">LERP</button>
+    <div class="single-control">
+      <span>Motion Type</span>
+      <div class="motion-selector-container">
+        <button class="motion-btn" data-motion="normal">Normal</button>
+        <button class="motion-btn" data-motion="lerp">LERP</button>
+      </div>
     </div>
-    <span>Agent Speed</span>
-    <div class="slider-container">
-      <input type="range" id="agent-speed-slider" min="0.5" max="5" step="0.1" value="2.0" />
-      <span class="value-display" id="agent-speed-value">2.0</span>
+    <div class="single-control">
+      <span>Agent Speed</span>
+      <div class="slider-wrapper">
+        <input type="range" id="agent-speed-slider" min="0.5" max="5" step="0.1" value="2.0" />
+        <span class="value-display" id="agent-speed-value">2.0</span>
+      </div>
     </div>
-    <span>Particles</span>
-    <div class="slider-container">
-      <input type="range" id="agent-count-slider" min="1" max="40" step="1" value="10" />
-      <span class="value-display" id="agent-count-value">10</span>
+    <div class="single-control">
+      <span>Particles</span>
+      <div class="slider-wrapper">
+        <input type="range" id="agent-count-slider" min="1" max="40" step="1" value="10" />
+        <span class="value-display" id="agent-count-value">10</span>
+      </div>
     </div>
-    <span>LERP Alpha</span>
-    <div class="slider-container">
-      <input type="range" id="agent-lerp-alpha-slider" min="0.01" max="1" step="0.01" value="0.15" />
-      <span class="value-display" id="agent-lerp-alpha-value">0.15</span>
+    <div class="single-control">
+      <span>LERP Alpha</span>
+      <div class="slider-wrapper">
+        <input type="range" id="agent-lerp-alpha-slider" min="0.01" max="1" step="0.01" value="0.15" />
+        <span class="value-display" id="agent-lerp-alpha-value">0.15</span>
+      </div>
     </div>
   </div>
 </div>
@@ -32,18 +40,18 @@
   // @ts-nocheck
   import { dist_arr } from '../common/constant';
 import { gfx_draw_grid, gfx_draw_heatmap, gfx_draw_vectorfield } from '../common/gfx_function';
+import { setupVisibilityPause } from '../common/p5_utils';
 import { djikstra_algorithm, node } from '../common/solver_function';
 import { is_in_grid, is_in_screen, reset_node_grid } from '../common/utils_function';
 import { update_vectorfield } from '../common/vectorfield_function';
-import { setupVisibilityPause } from '../common/p5_utils';
 
   const arg = {
     screen: {
-      w: 720,
-      h: 480,
+      w: 500,
+      h: 450,
     },
     grid: {
-      tile_size: 30,
+      tile_size: 25,
       w: 0,
       h: 0,
       stroke: 100,
@@ -267,6 +275,9 @@ import { setupVisibilityPause } from '../common/p5_utils';
     }
 
     p.setup = () => {
+      const container = document.getElementById('agentMotionVectorfield');
+      arg.screen.w = container.offsetWidth;
+
       let canvas = p.createCanvas(arg.screen.w, arg.screen.h);
       canvas.parent('agentMotionVectorfield');
 
@@ -274,9 +285,9 @@ import { setupVisibilityPause } from '../common/p5_utils';
       arg.grid.h = p.floor(arg.screen.h / arg.grid.tile_size);
 
       node_grid = new Array(arg.grid.h)
-        .fill()
+        .fill(null)
         .map((_, y) =>
-          new Array(arg.grid.w).fill().map((_, x) => new node(x, y))
+          new Array(arg.grid.w).fill(null).map((_, x) => new node(x, y))
         );
 
       gfx_grid = p.createGraphics(arg.screen.w, arg.screen.h);
@@ -349,7 +360,7 @@ import { setupVisibilityPause } from '../common/p5_utils';
     };
 
     p.draw = () => {
-      p.background(0);
+      p.clear();
 
       for (let y = 0; y < node_grid.length; y++) {
         for (let x = 0; x < node_grid[0].length; x++) {
@@ -424,89 +435,104 @@ import { setupVisibilityPause } from '../common/p5_utils';
 </script>
 
 <style>
-  #agentMotionVectorfield {
-    line-height: 0;
-    background-color: #1a1a1a;
-    background-image:
-      linear-gradient(45deg, #222 25%, transparent 25%),
-      linear-gradient(-45deg, #222 25%, transparent 25%),
-      linear-gradient(45deg, transparent 75%, #222 75%),
-      linear-gradient(-45deg, transparent 75%, #222 75%);
-    background-size: 20px 20px;
-    background-position:
-      0 0,
-      0 10px,
-      10px -10px,
-      -10px 0px;
-    border-radius: 4px;
-    overflow: hidden;
+  .agent-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 20px;
+    padding-bottom: 20px;
+    border-radius: 12px;
+    gap: 20px;
   }
 
-  .container {
-    display: flex;
-    flex-direction: row;
+  #agentMotionVectorfield {
+    overflow: hidden;
+    border-radius: 8px;
+    width: 100%;
+    height: fit-content;
+    box-shadow: rgba(0, 0, 0, 0.151) 0px 0px 5px;
+  }
+
+  #agentMotionVectorfield canvas {
+    display: block;
   }
 
   .controls {
-    flex: 1;
-    padding-left: 16px;
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    padding: 0 25px;
+    justify-content: space-between;
+  }
+
+  .single-control {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
   }
 
   .motion-selector-container {
-    width: 100%;
+    width: fit-content;
     display: flex;
     flex-direction: row;
-    gap: 8px;
-    margin-bottom: 15px;
+    outline: 2px solid #dbd8d4;
+    border-radius: 8px;
+    padding: 2px;
   }
 
-  .slider-container {
+  .slider-wrapper {
     display: flex;
+    flex-direction: row;
     align-items: center;
     gap: 10px;
-    margin-bottom: 15px;
+    outline: 2px solid #dbd8d4;
+    border-radius: 8px;
+    padding: 8px 10px;
   }
 
-  .slider-container input[type='range'] {
-    flex: 1;
+  input[type='range'] {
+    width: 90px;
+    cursor: pointer;
+    accent-color: #3d3a36;
   }
 
   .value-display {
-    display: inline-block !important;
-    color: white !important;
-    font-size: 0.9em !important;
-    text-transform: none !important;
-    letter-spacing: 0 !important;
-    margin-bottom: 0 !important;
-    min-width: 30px;
+    font-family: "Inter", monospace;
+    font-size: 11px;
+    color: #615f59;
+    display: inline-block;
+    min-width: 28px;
+    text-align: right;
   }
 
   span {
     display: block;
-    color: #ccc;
-    font-size: 0.9em;
-    margin-bottom: 8px;
+    font-family: "Inter";
+    font-size: 10px;
+    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 1px;
+    color: var(--font-body);
   }
 
   button {
-    background: #333;
-    border: 1px solid #555;
-    color: white;
-    padding: 8px 12px;
+    font-family: "Inter";
+    font-size: 13px;
+    color: #615f59;
+    padding: 6px 13px;
     cursor: pointer;
-    transition: background 0.2s;
-    border-radius: 4px;
-    flex: 1;
+    transition: background 0.15s;
+    border: none;
+    background: none;
+    border-radius: 6px;
   }
 
   button:hover {
-    background: #444;
+    background-color: rgba(0, 0, 0, 0.06);
   }
 
   button.active {
-    background: #007aff;
-    border-color: #0056b3;
+    background-color: #3d3a36;
+    color: #eeeadf;
   }
 </style>

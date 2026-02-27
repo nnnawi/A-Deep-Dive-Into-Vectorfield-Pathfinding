@@ -13,7 +13,7 @@ import AgentMotionVectorfieldAnim from 'AgentMotionVectorfieldAnim.astro'
 import FallbackComparison from 'FallbackComparison.astro'
 
 
-<video autoplay muted loop playsinline style="width: 100%;">
+{/* <video autoplay muted loop playsinline style="width: 100%;">
   <source src="/header-animation.mp4" type="video/mp4">
   Your browser does not support the video tag.
   </source>
@@ -23,9 +23,9 @@ import FallbackComparison from 'FallbackComparison.astro'
 # A Deep Dive Into <span style="color: #DF2D19; font-weight: 800;">Vectorfield</span> Pathfinding
 
 <img src="/arrow-title-red-alpha.png" style="width: 100%; position: absolute; top: 1.5px; right: -15px" />
-</div>
+</div> */}
 
-## Introduction
+## Introduction.
 
 Back in 2018, while building a clone of [Tanks!](https://nintendo.fandom.com/wiki/Tanks!),
 I ran into my first pathfinding challenge. I needed a way for multiple enemy tanks to chase the player around while dodging walls.
@@ -60,6 +60,7 @@ More than six years later, I finally decided to revisit this topic, something I�
 This is what this post is about: a deep dive into vector field pathfinding. <br/>
 How it works, the many ways you can build and tweak it to fit different needs and where it fits in the broader landscape of pathfinding algorithms.
 
+<br />
 <br />
 <br />
 
@@ -274,8 +275,6 @@ As mentioned earlier, vectorfield pathfinding builds directly on the Dijkstra al
 
 The key innovation in vectorfield pathfinding lies in how the second step is interpreted. Instead of tracing paths explicitly, the algorithm assigns a vector (a 2D arrow) to each tile, pointing in the direction of the next step along the shortest path toward the target. This results in a “vector field” that intuitively guides movement across the grid.
 
-We’ll see that even the first step — building the heatmap — can be adapted in vectorfield pathfinding. This opens the door to greater control and customization, allowing the algorithm to be tailored to specific constraints or use cases.
-
 
 ### Step 1 : Building the distance heatmap :
 
@@ -333,10 +332,17 @@ With these settings, computing the distance heatmap reduces to solving the Eikon
 
 The eikonal equation offers a continuous alternative to Dijkstra’s algorithm for heatmap generation—though it’s originally from a different field and wasn’t designed for graph problems.
 
+
+<div class="info-container">
+<div class="title">What's the difference with Djikstra</div>
+<p>
 Because it’s continuous, the eikonal solver produces smooth, floating-point distance values, unlike Dijkstra, which gives discrete steps.
 In the eikonal model, the wavefront spreads out in a circular pattern, like a ripple in water. 
+<br/>
 In contrast, Dijkstra’s wavefront can look square, diamond-shaped, or roughly round depending on the distance kernel used.
 This makes the eikonal approach appealing: it gives a more natural, physics-inspired result with smoother, more organic heatmaps and fewer artifacts compared to Dijkstra-based methods.
+</p>
+</div>
 
 ### Step - 2 : Building the vectorfield
 

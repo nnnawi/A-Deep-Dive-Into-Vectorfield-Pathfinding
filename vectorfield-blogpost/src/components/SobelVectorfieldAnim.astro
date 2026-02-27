@@ -2,7 +2,9 @@
 // Sobel Heatmap Visualization
 ---
 
-<div id="sobelVectorfield"></div>
+<div class="sobel-container">
+  <div id="sobelVectorfield"></div>
+</div>
 
 <script>
   import {
@@ -15,43 +17,48 @@
   import { update_vectorfield } from '../common/vectorfield_function';
   import { setupVisibilityPause } from '../common/p5_utils';
 
-  const sketch = (p) => {
-    const arg = {
-      screen: {
-        w: 720,
-        h: 480,
-      },
-      grid: {
-        tile_size: 30,
-        w: 0,
-        h: 0,
-        stroke: 100,
-        stroke_weight: 1,
-      },
-      arrow: {
-        stroke: 125,
-        stroke_weight: 1.5,
-        main_len: 14,
-        scd_len: 5,
-        angle: 210,
-      },
-    };
+  declare var p5: any;
 
-    var gfx_grid;
-    var gfx_heatmap;
-    var gfx_vectorfield;
+  const arg = {
+    screen: {
+      w: 500,
+      h: 450,
+    },
+    grid: {
+      tile_size: 25,
+      w: 0,
+      h: 0,
+      stroke: 100,
+      stroke_weight: 1,
+    },
+    arrow: {
+      stroke: 125,
+      stroke_weight: 1.5,
+      main_len: 14,
+      scd_len: 5,
+      angle: 210,
+    },
+  };
 
-    var node_grid;
+  var gfx_grid: any;
+  var gfx_heatmap: any;
+  var gfx_vectorfield: any;
 
-    var is_dragging = false;
-    var wallpen_state = true;
+  var node_grid: any;
 
-    var target = {
-      x: 0,
-      y: 0,
-    };
+  var is_dragging = false;
+  var wallpen_state = true;
 
+  var target = {
+    x: 5,
+    y: 5,
+  };
+
+  const sketch = (p: any) => {
     p.setup = () => {
+      const container = document.getElementById('sobelVectorfield')!;
+      arg.screen.w = container.offsetWidth;
+
       let canvas = p.createCanvas(arg.screen.w, arg.screen.h);
       canvas.parent('sobelVectorfield');
 
@@ -59,9 +66,9 @@
       arg.grid.h = p.floor(arg.screen.h / arg.grid.tile_size);
 
       node_grid = new Array(arg.grid.h)
-        .fill()
+        .fill(null)
         .map((_, y) =>
-          new Array(arg.grid.w).fill().map((_, x) => new node(x, y))
+          new Array(arg.grid.w).fill(null).map((_, x) => new node(x, y))
         );
 
       gfx_grid = p.createGraphics(arg.screen.w, arg.screen.h);
@@ -75,7 +82,7 @@
     };
 
     p.draw = () => {
-      p.background(0);
+      p.clear();
 
       p.image(gfx_heatmap, 0, 0);
       p.image(gfx_grid, 0, 0);
@@ -94,7 +101,6 @@
     };
 
     p.mouseMoved = () => {
-      // Only respond to mouse events if mouse is over the canvas
       if (
         p.mouseX < 0 ||
         p.mouseX > arg.screen.w ||
@@ -115,7 +121,6 @@
     };
 
     p.mouseDragged = () => {
-      // Only respond to mouse events if mouse is over the canvas
       if (
         p.mouseX < 0 ||
         p.mouseX > arg.screen.w ||
@@ -149,4 +154,26 @@
   setupVisibilityPause(new p5(sketch), 'sobelVectorfield');
 </script>
 
-<style></style>
+<style>
+  .sobel-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 20px;
+    padding-bottom: 20px;
+    border-radius: 12px;
+    gap: 20px;
+  }
+
+  #sobelVectorfield {
+    overflow: hidden;
+    border-radius: 8px;
+    width: 100%;
+    height: fit-content;
+    box-shadow: rgba(0, 0, 0, 0.151) 0px 0px 5px;
+  }
+
+  #sobelVectorfield canvas {
+    display: block;
+  }
+</style>

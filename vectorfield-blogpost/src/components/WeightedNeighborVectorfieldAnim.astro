@@ -10,14 +10,16 @@ const fnOptions = [
 ];
 ---
 
-<div class="container">
+<div class="weighted-container">
   <div id="weightedNeighborVectorfield"></div>
   <div class="controls">
-    <span>Weight Function</span>
-    <div class="function-selector-container">
-      {fnOptions.map(opt => (
-        <button class="fn-btn" data-fn={opt.fn} set:html={katex.renderToString(opt.latex, { throwOnError: false })}></button>
-      ))}
+    <div class="single-control">
+      <span>Weight Function</span>
+      <div class="function-selector-container">
+        {fnOptions.map(opt => (
+          <button class="fn-btn" data-fn={opt.fn} set:html={katex.renderToString(opt.latex, { throwOnError: false })}></button>
+        ))}
+      </div>
     </div>
   </div>
 </div>
@@ -25,318 +27,324 @@ const fnOptions = [
 <script>
 // @ts-nocheck
 import { parse } from 'mathjs';
-import { neighbor_pos_arr } from "../common/constant";
+import { neighbor_pos_arr } from '../common/constant';
 import { dist_arr } from '../common/constant.js';
-import { gfx_draw_arrow, gfx_draw_grid, gfx_draw_heatmap } from "../common/gfx_function";
-import { djikstra_algorithm, node } from "../common/solver_function";
-import { is_in_grid, is_in_screen, reset_node_grid } from "../common/utils_function";
+import { gfx_draw_arrow, gfx_draw_grid, gfx_draw_heatmap } from '../common/gfx_function';
+import { djikstra_algorithm, node } from '../common/solver_function';
+import { is_in_grid, is_in_screen, reset_node_grid } from '../common/utils_function';
 import { setupVisibilityPause } from '../common/p5_utils';
 
+const arg = {
+  screen: {
+    w: 500,
+    h: 450,
+  },
+  grid: {
+    tile_size: 25,
+    w: 0,
+    h: 0,
+    stroke: 100,
+    stroke_weight: 1,
+  },
+  arrow: {
+    stroke: 125,
+    stroke_weight: 1.5,
+    main_len: 14,
+    scd_len: 5,
+    angle: 210,
+  },
+};
+
+var gfx_grid;
+var gfx_heatmap;
+var gfx_vectorfield;
+
+var node_grid;
+
+var is_dragging = false;
+var wallpen_state = true;
+
+var current_function = '-log(x + 1)';
+var math_code;
+
+var target = {
+  x: 5,
+  y: 5,
+};
+
 const sketch = p => {
-  const arg = {
-        screen: {
-            w: 660,
-            h: 450,
-        },
-        grid: {
-            tile_size: 30,
-            w: 0,
-            h: 0,
-            stroke: 100,
-            stroke_weight: 1,
-        },
-        arrow: {
-            stroke: 125,
-            stroke_weight: 1.5,
-            main_len: 14,
-            scd_len: 5,
-            angle: 210,
+  p.setup = () => {
+    const container = document.getElementById('weightedNeighborVectorfield');
+    arg.screen.w = container.offsetWidth;
+
+    let canvas = p.createCanvas(arg.screen.w, arg.screen.h);
+    canvas.parent('weightedNeighborVectorfield');
+
+    arg.grid.w = p.floor(arg.screen.w / arg.grid.tile_size);
+    arg.grid.h = p.floor(arg.screen.h / arg.grid.tile_size);
+
+    node_grid = new Array(arg.grid.h).fill(null).map((_, y) =>
+      new Array(arg.grid.w).fill(null).map((_, x) => new node(x, y))
+    );
+
+    gfx_grid = p.createGraphics(arg.screen.w, arg.screen.h);
+    gfx_draw_grid(p, gfx_grid, arg);
+
+    gfx_heatmap = p.createGraphics(arg.screen.w, arg.screen.h);
+    djikstra_algorithm(node_grid, target, dist_arr.Manhattan, arg);
+
+    gfx_vectorfield = p.createGraphics(arg.screen.w, arg.screen.h);
+
+    const mathNode = parse(current_function);
+    math_code = mathNode.compile();
+
+    update_weighted_neighbor_vectorfield(p, node_grid, arg);
+
+    const fnButtons = document.querySelectorAll('.fn-btn');
+
+    const updateActiveButton = (activeFn) => {
+      fnButtons.forEach(btn => {
+        if (btn.getAttribute('data-fn') === activeFn) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
         }
-    }
+      });
+    };
 
-    var gfx_grid;
-    var gfx_heatmap;
-    var gfx_vectorfield;
+    updateActiveButton(current_function);
 
-    var node_grid;
-
-    var is_dragging = false;
-    var wallpen_state = true;
-
-    var current_function = "-log(x + 1)";
-    var math_code;
-
-    var target = {
-        x: 0,
-        y: 0,
-    }
-
-    p.setup = () => {
-        let canvas = p.createCanvas(arg.screen.w, arg.screen.h);
-        canvas.parent("weightedNeighborVectorfield");
-
-        arg.grid.w = p.floor(arg.screen.w / arg.grid.tile_size);
-        arg.grid.h = p.floor(arg.screen.h / arg.grid.tile_size);
-
-        node_grid = new Array(arg.grid.h).fill().map((_, y) =>
-            new Array(arg.grid.w).fill().map((_, x) => new node(x, y))
-        );
-
-        gfx_grid = p.createGraphics(arg.screen.w, arg.screen.h);
-        gfx_draw_grid(p, gfx_grid, arg);
-
-        gfx_heatmap = p.createGraphics(arg.screen.w, arg.screen.h);
-        djikstra_algorithm(node_grid, target, dist_arr.Manhattan, arg);
-
-        gfx_vectorfield = p.createGraphics(arg.screen.w, arg.screen.h);
-
+    fnButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        current_function = btn.getAttribute('data-fn');
+        updateActiveButton(current_function);
         const mathNode = parse(current_function);
         math_code = mathNode.compile();
-
         update_weighted_neighbor_vectorfield(p, node_grid, arg);
+      });
+    });
+  };
 
-        // Add event listeners for function selector buttons
-        const fnButtons = document.querySelectorAll('.fn-btn');
+  p.draw = () => {
+    p.clear();
 
-        const updateActiveButton = (activeFn) => {
-            fnButtons.forEach(btn => {
-                if (btn.getAttribute('data-fn') === activeFn) {
-                    btn.classList.add('active');
-                } else {
-                    btn.classList.remove('active');
-                }
-            });
-        };
+    p.image(gfx_heatmap, 0, 0);
+    p.image(gfx_vectorfield, 0, 0);
 
-        updateActiveButton(current_function);
-
-        fnButtons.forEach(btn => {
-            btn.addEventListener('click', () => {
-                current_function = btn.getAttribute('data-fn');
-                updateActiveButton(current_function);
-                const mathNode = parse(current_function);
-                math_code = mathNode.compile();
-                update_weighted_neighbor_vectorfield(p, node_grid, arg);
-            });
-        });
+    for (let y = 0; y < node_grid.length; y++) {
+      for (let x = 0; x < node_grid[0].length; x++) {
+        let current_node = node_grid[y][x];
+        current_node.update_display_dist(p, 0.05);
+        current_node.update_display_vector_angle(p, 0.05);
+      }
     }
 
-    p.draw = () => {
-        p.background(0);
+    gfx_draw_heatmap(p, gfx_heatmap, node_grid, target, arg);
+    gfx_draw_weighted_neighbor_vectorfield(p, gfx_vectorfield, node_grid, target, arg);
+  };
 
-        p.image(gfx_heatmap, 0, 0);
-        p.image(gfx_vectorfield, 0, 0);
+  p.mouseMoved = () => {
+    if (p.mouseX < 0 || p.mouseX > arg.screen.w || p.mouseY < 0 || p.mouseY > arg.screen.h) return;
+    if (!is_in_screen(p.mouseX, p.mouseY, arg)) return;
 
-        for (let y = 0; y < node_grid.length; y++) {
-            for (let x = 0; x < node_grid[0].length; x++) {
-                let current_node = node_grid[y][x];
-                current_node.update_display_dist(p, 0.05);
-                current_node.update_display_vector_angle(p, 0.05);
-            }
+    let grid_x = p.floor(p.mouseX / arg.grid.tile_size);
+    let grid_y = p.floor(p.mouseY / arg.grid.tile_size);
+
+    target.x = grid_x;
+    target.y = grid_y;
+
+    reset_node_grid(node_grid);
+    djikstra_algorithm(node_grid, target, dist_arr.Manhattan, arg);
+    update_weighted_neighbor_vectorfield(p, node_grid, arg);
+  };
+
+  p.mouseDragged = () => {
+    if (p.mouseX < 0 || p.mouseX > arg.screen.w || p.mouseY < 0 || p.mouseY > arg.screen.h) return;
+
+    let x = p.floor(p.mouseX / arg.grid.tile_size);
+    let y = p.floor(p.mouseY / arg.grid.tile_size);
+
+    if (!is_in_grid(x, y, arg)) return;
+
+    let current_node = node_grid[y][x];
+
+    if (!is_dragging) {
+      wallpen_state = !current_node.isWall;
+      is_dragging = true;
+    }
+
+    current_node.isWall = wallpen_state;
+    reset_node_grid(node_grid);
+    djikstra_algorithm(node_grid, target, dist_arr.Manhattan, arg);
+    update_weighted_neighbor_vectorfield(p, node_grid, arg);
+  };
+
+  p.mouseReleased = () => {
+    if (is_dragging) is_dragging = false;
+  };
+
+  function update_weighted_neighbor_vectorfield(p, node_grid, arg) {
+    for (let y = 0; y < arg.grid.h; y++) {
+      for (let x = 0; x < arg.grid.w; x++) {
+        let current_node = node_grid[y][x];
+        if (current_node.isWall) continue;
+
+        let vector = [0, 0];
+
+        for (const neighbor_pos of neighbor_pos_arr) {
+          const dx = neighbor_pos[0];
+          const dy = neighbor_pos[1];
+
+          const neighbor_x = x + dx;
+          const neighbor_y = y + dy;
+
+          let node_dist;
+
+          if (!is_in_grid(neighbor_x, neighbor_y, arg)) {
+            node_dist = current_node.dist;
+          } else {
+            const neighbor_node = node_grid[neighbor_y][neighbor_x];
+            node_dist = neighbor_node.isWall ? current_node.dist : neighbor_node.dist;
+          }
+
+          let weight = math_code.evaluate({ x: node_dist });
+
+          vector[0] += neighbor_pos[0] * weight;
+          vector[1] += neighbor_pos[1] * weight;
         }
 
-        gfx_draw_heatmap(p, gfx_heatmap, node_grid, target, arg);
-        gfx_draw_weighted_neighbor_vectorfield(p, gfx_vectorfield, node_grid, target, arg);
+        let magnitude = Math.sqrt(vector[0] * vector[0] + vector[1] * vector[1]);
+        if (magnitude > 0) {
+          vector[0] /= magnitude;
+          vector[1] /= magnitude;
+        }
+
+        let angle = p.atan2(vector[1], vector[0]) - p.PI / 2;
+        current_node.vector_angle = angle;
+      }
     }
+  }
 
-    p.mouseMoved = () => {
-        if (p.mouseX < 0 || p.mouseX > arg.screen.w || p.mouseY < 0 || p.mouseY > arg.screen.h) return;
-        if (!is_in_screen(p.mouseX, p.mouseY, arg)) return;
+  function gfx_draw_weighted_neighbor_vectorfield(p, gfx, node_grid, target, arg) {
+    gfx.clear();
+    gfx.strokeWeight(arg.arrow.stroke_weight);
 
-        let grid_x = p.floor(p.mouseX / arg.grid.tile_size);
-        let grid_y = p.floor(p.mouseY / arg.grid.tile_size);
+    gfx.push();
+    gfx.colorMode(p.HSB);
 
-        target.x = grid_x;
-        target.y = grid_y;
+    p.drawingContext.shadowOffsetX = 0;
+    p.drawingContext.shadowOffsetY = 0;
+    p.drawingContext.shadowBlur = 10;
+    p.drawingContext.shadowColor = 'gray';
+    gfx.translate(arg.grid.tile_size / 2, arg.grid.tile_size / 2);
 
-        reset_node_grid(node_grid);
-        djikstra_algorithm(node_grid, target, dist_arr.Manhattan, arg);
-        update_weighted_neighbor_vectorfield(p, node_grid, arg);
-    }
+    for (let y = 0; y < arg.grid.h; y++) {
+      gfx.push();
 
-    p.mouseDragged = () => {
-        if (p.mouseX < 0 || p.mouseX > arg.screen.w || p.mouseY < 0 || p.mouseY > arg.screen.h) return;
-
-        let x = p.floor(p.mouseX / arg.grid.tile_size);
-        let y = p.floor(p.mouseY / arg.grid.tile_size);
-
-        if (!is_in_grid(x, y, arg)) return;
-
+      for (let x = 0; x < arg.grid.w; x++) {
         let current_node = node_grid[y][x];
 
-        if (!is_dragging) {
-            wallpen_state = !current_node.isWall;
-            is_dragging = true;
+        if (current_node.isWall || (x == target.x && y == target.y)) {
+          gfx.translate(arg.grid.tile_size, 0);
+          continue;
         }
 
-        current_node.isWall = wallpen_state;
-        reset_node_grid(node_grid);
-        djikstra_algorithm(node_grid, target, dist_arr.Manhattan, arg);
-        update_weighted_neighbor_vectorfield(p, node_grid, arg);
-    }
-
-    p.mouseReleased = () => {
-        if (is_dragging) is_dragging = false;
-    }
-
-    function update_weighted_neighbor_vectorfield(p, node_grid, arg) {
-        for (let y = 0; y < arg.grid.h; y++) {
-            for (let x = 0; x < arg.grid.w; x++) {
-                let current_node = node_grid[y][x];
-                if (current_node.isWall) continue;
-
-                let vector = [0, 0];
-
-                for (const neighbor_pos of neighbor_pos_arr) {
-                    const dx = neighbor_pos[0];
-                    const dy = neighbor_pos[1];
-
-                    const neighbor_x = x + dx;
-                    const neighbor_y = y + dy;
-
-                    let node_dist;
-
-                    if (!is_in_grid(neighbor_x, neighbor_y, arg)) {
-                        node_dist = current_node.dist;
-                    } else {
-                        const neighbor_node = node_grid[neighbor_y][neighbor_x];
-                        node_dist = neighbor_node.isWall ? current_node.dist : neighbor_node.dist;
-                    }
-
-                    let weight = math_code.evaluate({ x: node_dist });
-
-                    vector[0] += neighbor_pos[0] * weight;
-                    vector[1] += neighbor_pos[1] * weight;
-                }
-
-                let magnitude = Math.sqrt(vector[0] * vector[0] + vector[1] * vector[1]);
-                if (magnitude > 0) {
-                    vector[0] /= magnitude;
-                    vector[1] /= magnitude;
-                }
-
-                let angle = p.atan2(vector[1], vector[0]) - p.PI / 2;
-                current_node.vector_angle = angle;
-            }
-        }
-    }
-
-    function gfx_draw_weighted_neighbor_vectorfield(p, gfx, node_grid, target, arg) {
-        gfx.clear();
-        gfx.strokeWeight(arg.arrow.stroke_weight);
-
+        let angle = current_node.display_vector_angle;
         gfx.push();
-        gfx.colorMode(p.HSB);
-
-        p.drawingContext.shadowOffsetX = 0;
-        p.drawingContext.shadowOffsetY = 0;
-        p.drawingContext.shadowBlur = 10;
-        p.drawingContext.shadowColor = 'gray';
-        gfx.translate(arg.grid.tile_size / 2, arg.grid.tile_size / 2);
-
-        for (let y = 0; y < arg.grid.h; y++) {
-            gfx.push();
-
-            for (let x = 0; x < arg.grid.w; x++) {
-                let current_node = node_grid[y][x];
-
-                if (current_node.isWall || (x == target.x && y == target.y)) {
-                    gfx.translate(arg.grid.tile_size, 0);
-                    continue;
-                }
-
-                let angle = current_node.display_vector_angle;
-                gfx.push();
-                gfx.stroke(0, 0, 255);
-                gfx.rotate(angle);
-                gfx_draw_arrow(p, gfx, arg);
-                gfx.pop();
-
-                gfx.translate(arg.grid.tile_size, 0);
-            }
-            gfx.pop();
-            gfx.translate(0, arg.grid.tile_size);
-        }
+        gfx.stroke(0, 0, 255);
+        gfx.rotate(angle);
+        gfx_draw_arrow(p, gfx, arg);
         gfx.pop();
+
+        gfx.translate(arg.grid.tile_size, 0);
+      }
+      gfx.pop();
+      gfx.translate(0, arg.grid.tile_size);
     }
-}
+    gfx.pop();
+  }
+};
 
 setupVisibilityPause(new p5(sketch), 'weightedNeighborVectorfield');
 </script>
 
 <style>
-  #weightedNeighborVectorfield {
-    line-height: 0;
-    background-color: #1a1a1a;
-    background-image:
-      linear-gradient(45deg, #222 25%, transparent 25%),
-      linear-gradient(-45deg, #222 25%, transparent 25%),
-      linear-gradient(45deg, transparent 75%, #222 75%),
-      linear-gradient(-45deg, transparent 75%, #222 75%);
-    background-size: 20px 20px;
-    background-position:
-      0 0,
-      0 10px,
-      10px -10px,
-      -10px 0px;
-    border-radius: 4px;
-    overflow: hidden;
+  .weighted-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 20px;
+    padding-bottom: 20px;
+    border-radius: 12px;
+    gap: 20px;
   }
 
-  .container {
-    display: flex;
-    flex-direction: row;
+  #weightedNeighborVectorfield {
+    overflow: hidden;
+    border-radius: 8px;
+    width: 100%;
+    height: fit-content;
+    box-shadow: rgba(0, 0, 0, 0.151) 0px 0px 5px;
+  }
+
+  #weightedNeighborVectorfield canvas {
+    display: block;
   }
 
   .controls {
-    flex: 1;
-    padding-left: 16px;
+    display: flex;
+    flex-direction: row;
+    gap: 50px;
   }
 
-  .function-selector-container {
-    width: 100%;
+  .single-control {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    margin-bottom: 15px;
+  }
+
+  .function-selector-container {
+    width: fit-content;
+    display: flex;
+    flex-direction: row;
+    outline: 2px solid #dbd8d4;
+    border-radius: 8px;
+    padding: 2px;
   }
 
   span {
     display: block;
-    color: #ccc;
-    font-size: 0.9em;
-    margin-bottom: 8px;
+    font-family: "Inter";
+    font-size: 10px;
+    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 1px;
+    color: var(--font-body);
   }
 
   button {
-    background: #333;
-    border: 1px solid #555;
-    color: white;
-    padding: 10px 12px;
+    font-family: "Inter";
+    font-size: 13px;
+    color: #615f59;
+    padding: 6px 13px;
     cursor: pointer;
-    transition: background 0.2s;
-    border-radius: 4px;
-    text-align: center;
+    transition: background 0.15s;
+    border: none;
+    background: none;
+    border-radius: 6px;
   }
 
   button:hover {
-    background: #444;
+    background-color: rgba(0, 0, 0, 0.06);
   }
 
   button.active {
-    background: #007aff;
-    border-color: #0056b3;
+    background-color: #3d3a36;
+    color: #eeeadf;
   }
 
-  /* Make KaTeX render in white */
   button :global(.katex) {
-    color: white;
+    color: inherit;
     font-size: 1em;
-  }
-
-  button.active :global(.katex) {
-    color: white;
   }
 </style>

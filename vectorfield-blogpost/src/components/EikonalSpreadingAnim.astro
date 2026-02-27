@@ -7,23 +7,30 @@
   <div class="controls">
     <div class="single-control">
       <span>Animation Progress</span>
-      <div class="slider-wrapper">
-        <input
-          type="range"
-          id="time-slider"
-          min="0"
-          max="100"
-          value="0"
-          step="1"
-        />
-        
+      <div class="progress-row">
+        <div class="button-group">
+          <button id="play-pause-btn" aria-label="Play">
+            <svg id="play-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+            <svg id="pause-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+          </button>
+        </div>
+        <div class="slider-wrapper">
+          <input
+            type="range"
+            id="time-slider"
+            min="0"
+            max="100"
+            value="0"
+            step="1"
+          />
+        </div>
       </div>
     </div>
 
     <div class="single-control">
       <span>Utility</span>
       <div class="button-group">
-        <button id="change-seed-btn">Randomize</button>
+        <button id="change-seed-btn">Randomize walls</button>
       </div>
     </div>
   </div>
@@ -57,6 +64,9 @@ import { node } from '../common/solver_function';
   var maxTimeSteps = 0;
   var is_dragging = false;
   var wallpen_state = true;
+  var isPlaying = false;
+  var playDirection = 1;
+  var playInterval: ReturnType<typeof setInterval> | null = null;
 
   const sketch = (p) => {
     p.setup = () => {
@@ -91,16 +101,55 @@ import { node } from '../common/solver_function';
     };
 
     function setupUIListeners() {
-      const timeSlider = document.getElementById('time-slider');
+      const timeSlider = document.getElementById('time-slider') as HTMLInputElement;
       const changeSeedBtn = document.getElementById('change-seed-btn');
+      const playPauseBtn = document.getElementById('play-pause-btn')!;
+
+      const playIcon = document.getElementById('play-icon')! as HTMLElement;
+      const pauseIcon = document.getElementById('pause-icon')! as HTMLElement;
+
+      function startPlayback() {
+        isPlaying = true;
+        playIcon.style.display = 'none';
+        pauseIcon.style.display = '';
+        playPauseBtn.classList.add('active');
+        playInterval = setInterval(() => {
+          currentTimeStep += playDirection;
+          if (currentTimeStep >= maxTimeSteps - 1) {
+            currentTimeStep = maxTimeSteps - 1;
+            playDirection = -1;
+          } else if (currentTimeStep <= 0) {
+            currentTimeStep = 0;
+            playDirection = 1;
+          }
+          timeSlider.value = String(Math.round((currentTimeStep / (maxTimeSteps - 1)) * 100));
+          updateHeatmapFromTimeStep();
+        }, 25);
+      }
+
+      function stopPlayback() {
+        isPlaying = false;
+        playIcon.style.display = '';
+        pauseIcon.style.display = 'none';
+        playPauseBtn.classList.remove('active');
+        clearInterval(playInterval ?? undefined);
+        playInterval = null;
+      }
+
+      playPauseBtn.addEventListener('click', () => {
+        if (isPlaying) stopPlayback();
+        else startPlayback();
+      });
 
       timeSlider.addEventListener('input', (e) => {
-        const value = parseInt(e.target.value);
+        if (isPlaying) stopPlayback();
+        const value = parseInt((e.target as HTMLInputElement).value);
         currentTimeStep = Math.floor((value / 100) * (maxTimeSteps - 1));
         updateHeatmapFromTimeStep();
       });
 
       changeSeedBtn.addEventListener('click', () => {
+        stopPlayback();
         resetGrid();
         generateRandomWalls();
         target.x = p.floor(arg.grid.w / 2);
@@ -359,8 +408,8 @@ import { node } from '../common/solver_function';
               gfx_heatmap.fill(hue, 100, 90);
             }
             else{
-              gfx_heatmap.colorMode(p.RGB);
-              gfx_heatmap.fill(248, 248, 247);
+              gfx_heatmap.colorMode(p.RGBA);
+              gfx_heatmap.fill(248, 248, 247, 0);
 
             }
           }
@@ -496,6 +545,13 @@ import { node } from '../common/solver_function';
     outline: 2px solid #dbd8d4;
     border-radius: 8px;
     padding: 2px;
+  }
+
+  .progress-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
   }
 
   .slider-wrapper {
