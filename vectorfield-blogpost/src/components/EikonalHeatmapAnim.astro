@@ -4,6 +4,8 @@
 
 <div class="eikonal-container">
   <div id="eikonalHeatmap"></div>
+        <p>Each tile is colored by its distance to the cursor. Click & drag mouse to add or remove walls.</p>
+
   <div class="controls">
     <div class="single-control">
       <span>Color Mode</span>
@@ -25,13 +27,13 @@
 
 <script>
   import { gfx_draw_grid, gfx_draw_heatmap } from '../common/gfx_function';
-  import { eikonal_solver, node } from '../common/solver_function';
-  import {
-    is_in_grid,
-    is_in_screen,
-    reset_node_grid,
-  } from '../common/utils_function';
-  import { setupVisibilityPause } from '../common/p5_utils';
+import { setupVisibilityPause } from '../common/p5_utils';
+import { eikonal_solver, node } from '../common/solver_function';
+import {
+  is_in_grid,
+  is_in_screen,
+  reset_node_grid,
+} from '../common/utils_function';
 
   const arg = {
     screen: {
@@ -306,6 +308,13 @@
 
   button:hover {
     background-color: rgba(0, 0, 0, 0.06);
+  }
+
+    p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.6;
+        color: #837a7a;
   }
 
   button.active {

@@ -4,18 +4,20 @@
 
 <div class="sobel-container">
   <div id="sobelVectorfield"></div>
+        <p>Each tile is colored by its distance to the cursor. Click & drag mouse to add or remove walls.</p>
+
 </div>
 
 <script>
   import {
-    gfx_draw_grid,
-    gfx_draw_heatmap,
-    gfx_draw_vectorfield,
-  } from '../common/gfx_function';
-  import { eikonal_solver, node } from '../common/solver_function';
-  import { is_in_grid, is_in_screen } from '../common/utils_function';
-  import { update_vectorfield } from '../common/vectorfield_function';
-  import { setupVisibilityPause } from '../common/p5_utils';
+  gfx_draw_grid,
+  gfx_draw_heatmap,
+  gfx_draw_vectorfield,
+} from '../common/gfx_function';
+import { setupVisibilityPause } from '../common/p5_utils';
+import { eikonal_solver, node } from '../common/solver_function';
+import { is_in_grid, is_in_screen } from '../common/utils_function';
+import { update_vectorfield } from '../common/vectorfield_function';
 
   declare var p5: any;
 
@@ -54,6 +56,24 @@
     y: 5,
   };
 
+  function synchronizeDisplayValues() {
+    for (let y = 0; y < arg.grid.h; y++) {
+      for (let x = 0; x < arg.grid.w; x++) {
+        const current_node = node_grid[y][x];
+        if (current_node.isWall) continue;
+
+        if (!Number.isFinite(current_node.dist)) {
+          current_node.display_dist = Infinity;
+        } else if (
+          !Number.isFinite(current_node.display_dist) ||
+          Math.abs(current_node.display_dist - current_node.dist) > 500
+        ) {
+          current_node.display_dist = current_node.dist;
+        }
+      }
+    }
+  }
+
   const sketch = (p: any) => {
     p.setup = () => {
       const container = document.getElementById('sobelVectorfield')!;
@@ -76,6 +96,7 @@
 
       gfx_heatmap = p.createGraphics(arg.screen.w, arg.screen.h);
       eikonal_solver(node_grid, target);
+      synchronizeDisplayValues();
 
       gfx_vectorfield = p.createGraphics(arg.screen.w, arg.screen.h);
       update_vectorfield(p, node_grid, arg, 'sobel');
@@ -117,6 +138,7 @@
       target.y = grid_y;
 
       eikonal_solver(node_grid, target);
+      synchronizeDisplayValues();
       update_vectorfield(p, node_grid, arg, 'sobel');
     };
 
@@ -143,6 +165,7 @@
 
       current_node.isWall = wallpen_state;
       eikonal_solver(node_grid, target);
+      synchronizeDisplayValues();
       update_vectorfield(p, node_grid, arg, 'sobel');
     };
 
@@ -175,5 +198,13 @@
 
   #sobelVectorfield canvas {
     display: block;
+  }
+
+
+  p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.6;
+        color: #837a7a;
   }
 </style>

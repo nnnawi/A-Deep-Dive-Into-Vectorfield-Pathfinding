@@ -70,18 +70,29 @@
       }
 
       .pseudo-code-container{
-        font-size: 16px;
-        width: var(--pseudo-code-width, fit-content);
         width: 100%;
         overflow-x: auto;
         display: flex;
-        background-color: #eaecec;
-        padding: 10px 20px 15px 30px;
+        flex-direction: column;
+        background-color: #e6edf9;
+        color: #18306a;
+        padding: 0 25px 15px 25px;
         border-radius: 7px;
         font-size: 15px;
 
-        /* margin: 0 auto; */
-        /* background-color: red; */
+        .title {
+          font-family: "Inter";
+          font-weight: 700;
+          letter-spacing: .9px;
+          font-size: 13px;
+          text-transform: uppercase;
+          padding: 18px 0 4px 0;
+        }
+
+        /* mjx-container[display='true'] {
+          text-align: left;
+          margin: 0.5rem 0;
+        } */
       }
 
       .ytb-video-container{
@@ -106,7 +117,7 @@
         color: #493510;
         border-radius: 7px;
         padding: 20px 25px;
-        
+
         p{
           font-size: 16px;
           line-height: 26px;
@@ -120,6 +131,146 @@
           letter-spacing: .9px;
           font-size: 13px;
           text-transform: uppercase;
+        }
+      }
+
+      .expandable-container {
+        display: flex;
+        flex-direction: column;
+        background-color: #e6edf9;
+        color: #18306a;
+        border-radius: 7px;
+        overflow: hidden;
+
+        > .title {
+          font-family: "Inter";
+          font-weight: 700;
+          letter-spacing: .9px;
+          font-size: 13px;
+          text-transform: uppercase;
+          padding: 18px 25px 4px 25px;
+        }
+      }
+
+      .expandable-content {
+        padding: 0 25px;
+        max-height: 100px;
+        overflow: hidden;
+        transition: max-height 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+
+        p {
+          font-size: 16px;
+          line-height: 26px;
+          padding-left: 6px;
+          margin: 10px 0;
+          color: #18306a;
+        }
+
+        ul {
+          padding-left: 2.5rem;
+          font-size: 16px;
+          line-height: 26px;
+          margin: 6px 0;
+          color: #18306a;
+        }
+
+        li {
+          margin: 4px 0;
+        }
+
+        mjx-container[display='true'] {
+          margin: 1rem 0;
+        }
+      }
+
+      .expandable-fade {
+        height: 64px;
+        background: linear-gradient(to bottom, transparent, #e6edf9);
+        margin-top: -64px;
+        pointer-events: none;
+        flex-shrink: 0;
+        transition: opacity 0.3s ease;
+
+        &.hidden {
+          opacity: 0;
+        }
+      }
+
+      .expandable-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-family: "Inter";
+        font-size: 12px;
+        font-weight: 700;
+        color: #3D54BC;
+        text-transform: uppercase;
+        letter-spacing: .9px;
+        padding: 10px 25px 18px 25px;
+        align-self: flex-start;
+        transition: color 0.2s;
+
+        &:hover {
+          color: #2a3c90;
+
+          .expandable-toggle-text {
+            border-bottom-color: #2a3c90;
+          }
+        }
+      }
+
+      .expandable-toggle-text {
+        border-bottom: 1px solid transparent;
+        transition: border-color 0.2s;
+      }
+
+      .expandable-toggle-icon {
+        font-size: 10px;
+        transition: transform 0.35s ease;
+        display: inline-block;
+      }
+
+      .complexity-table-wrapper {
+        margin: 1.5rem 0 2rem 0;
+        border-radius: 7px;
+        overflow: hidden;
+        border: 1px solid #e0c48a;
+        font-family: "Inter";
+
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin: 0;
+        }
+
+        th {
+          background-color: #f8ecd4;
+          color: #493510;
+          font-weight: 600;
+          padding: 10px 18px;
+          text-align: left;
+          border-bottom: 2px solid #e0c48a;
+          font-size: 13px;
+          letter-spacing: 0.3px;
+          white-space: nowrap;
+        }
+
+        td {
+          padding: 11px 18px;
+          border-bottom: 1px solid #f0dfc0;
+          color: var(--color-text);
+          font-family: var(--font-body);
+          line-height: 1.5;
+          vertical-align: middle;
+          font-size: 13px;
+          background-color: #f8ecd4;
+        }
+
+        tr:last-child td {
+          border-bottom: none;
         }
       }
 
@@ -263,5 +414,34 @@
     <div class="container">
       <slot />
     </div>
+    <script is:inline>
+      document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.expandable-container').forEach(function(container) {
+          var content = container.querySelector('.expandable-content');
+          var fade = container.querySelector('.expandable-fade');
+          var toggle = container.querySelector('.expandable-toggle');
+          if (!content || !fade || !toggle) return;
+
+          var toggleText = toggle.querySelector('.expandable-toggle-text');
+          var toggleIcon = toggle.querySelector('.expandable-toggle-icon');
+          var expanded = false;
+
+          toggle.addEventListener('click', function() {
+            expanded = !expanded;
+            if (expanded) {
+              content.style.maxHeight = content.scrollHeight + 'px';
+              fade.classList.add('hidden');
+              if (toggleText) toggleText.textContent = 'Show less';
+              if (toggleIcon) toggleIcon.style.transform = 'rotate(180deg)';
+            } else {
+              content.style.maxHeight = '100px';
+              fade.classList.remove('hidden');
+              if (toggleText) toggleText.textContent = 'Full explanation';
+              if (toggleIcon) toggleIcon.style.transform = '';
+            }
+          });
+        });
+      });
+    </script>
   </body>
 </html>

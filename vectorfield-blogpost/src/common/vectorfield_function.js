@@ -48,7 +48,7 @@ export function update_vectorfield(p, node_grid, arg, type){
 
 export function kernel_min(node_grid, x, y, arg){
     let min_dist = Infinity;
-    let vector;
+    let vector = [0, 0];
 
     for(const neighbor_pos of neighbor_pos_arr){
         let dx = neighbor_pos[0];
@@ -90,6 +90,10 @@ export function kernel_sobel(node_grid, x, y, arg){
             const current_node = node_grid[neighbor_y][neighbor_x];
             node_dist = current_node.isWall ? node_grid[y][x].dist : current_node.dist;
         }
+
+        if (!Number.isFinite(node_dist)) {
+            node_dist = 0;
+        }
     
         g_x -= node_dist * sobel_matrix.x[dy + 1][dx + 1];
         g_y -= node_dist * sobel_matrix.y[dy + 1][dx + 1];
@@ -115,6 +119,10 @@ export function kernel_f_function(node_grid, x, y, math_code, arg){
         } else {
             const current_node = node_grid[neighbor_y][neighbor_x];
             node_dist = current_node.isWall ? node_grid[y][x].dist : current_node.dist;
+        }
+
+        if (!Number.isFinite(node_dist)) {
+            node_dist = 0;
         }
 
         node_dist = math_code.evaluate({x : node_dist});

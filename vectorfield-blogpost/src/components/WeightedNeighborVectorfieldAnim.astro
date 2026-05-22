@@ -12,6 +12,8 @@ const fnOptions = [
 
 <div class="weighted-container">
   <div id="weightedNeighborVectorfield"></div>
+          <p>Each tile is colored by its distance to the cursor. Click & drag mouse to add or remove walls.</p>
+
   <div class="controls">
     <div class="single-control">
       <span>Weight Function</span>
@@ -28,11 +30,10 @@ const fnOptions = [
 // @ts-nocheck
 import { parse } from 'mathjs';
 import { neighbor_pos_arr } from '../common/constant';
-import { dist_arr } from '../common/constant.js';
 import { gfx_draw_arrow, gfx_draw_grid, gfx_draw_heatmap } from '../common/gfx_function';
-import { djikstra_algorithm, node } from '../common/solver_function';
-import { is_in_grid, is_in_screen, reset_node_grid } from '../common/utils_function';
 import { setupVisibilityPause } from '../common/p5_utils';
+import { eikonal_solver, node } from '../common/solver_function';
+import { is_in_grid, is_in_screen, reset_node_grid } from '../common/utils_function';
 
 const arg = {
   screen: {
@@ -91,7 +92,7 @@ const sketch = p => {
     gfx_draw_grid(p, gfx_grid, arg);
 
     gfx_heatmap = p.createGraphics(arg.screen.w, arg.screen.h);
-    djikstra_algorithm(node_grid, target, dist_arr.Manhattan, arg);
+    eikonal_solver(node_grid, target);
 
     gfx_vectorfield = p.createGraphics(arg.screen.w, arg.screen.h);
 
@@ -154,7 +155,7 @@ const sketch = p => {
     target.y = grid_y;
 
     reset_node_grid(node_grid);
-    djikstra_algorithm(node_grid, target, dist_arr.Manhattan, arg);
+    eikonal_solver(node_grid, target);
     update_weighted_neighbor_vectorfield(p, node_grid, arg);
   };
 
@@ -175,7 +176,7 @@ const sketch = p => {
 
     current_node.isWall = wallpen_state;
     reset_node_grid(node_grid);
-    djikstra_algorithm(node_grid, target, dist_arr.Manhattan, arg);
+    eikonal_solver(node_grid, target);
     update_weighted_neighbor_vectorfield(p, node_grid, arg);
   };
 
@@ -346,5 +347,12 @@ setupVisibilityPause(new p5(sketch), 'weightedNeighborVectorfield');
   button :global(.katex) {
     color: inherit;
     font-size: 1em;
+  }
+
+      p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.6;
+        color: #837a7a;
   }
 </style>

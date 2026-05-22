@@ -4,14 +4,16 @@
 
 <div class="minneighbor-container">
   <div id="minNeighborVectorfield"></div>
+          <p>Each tile is colored by its distance to the cursor. Click & drag mouse to add or remove walls.</p>
+
 </div>
 
 <script>
   import { dist_arr, neighbor_pos_arr } from '../common/constant';
-  import { gfx_draw_arrow, gfx_draw_grid, gfx_draw_heatmap } from '../common/gfx_function';
-  import { djikstra_algorithm, node } from '../common/solver_function';
-  import { is_in_grid, is_in_screen, reset_node_grid } from '../common/utils_function';
-  import { setupVisibilityPause } from '../common/p5_utils';
+import { gfx_draw_arrow, gfx_draw_grid, gfx_draw_heatmap } from '../common/gfx_function';
+import { setupVisibilityPause } from '../common/p5_utils';
+import { djikstra_algorithm, node } from '../common/solver_function';
+import { is_in_grid, is_in_screen, reset_node_grid } from '../common/utils_function';
 
   declare var p5: any;
 
@@ -232,5 +234,12 @@
 
   #minNeighborVectorfield canvas {
     display: block;
+  }
+
+      p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.6;
+        color: #837a7a;
   }
 </style>

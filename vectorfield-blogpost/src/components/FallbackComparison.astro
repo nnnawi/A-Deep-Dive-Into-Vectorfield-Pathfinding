@@ -1,8 +1,11 @@
 ---
 // Sobel Fallback Comparison Visualization
 ---
+<div class="caca">
 
-<div id="fallbackComparison"></div>
+    <div id="fallbackComparison"></div>
+    <img src="/fallback-title.png" style="width: 100%; padding-left: 22px">
+</div>
 
 <script>
 import { dist_arr, neighbor_pos_arr, sobel_matrix } from "../common/constant";
@@ -15,7 +18,7 @@ import { reset_node_grid } from "../common/utils_function";
      const arg = {
         screen: {
             w: 720,
-            h: 280,
+            h: 240,
         },
         grid: {
             tile_size: 24,
@@ -36,7 +39,7 @@ import { reset_node_grid } from "../common/utils_function";
             grid_height: 240,
             gap: 0,
             start_x: 0,
-            title_height: 40,
+            title_height: 0,
         }
     }
 
@@ -142,35 +145,14 @@ import { reset_node_grid } from "../common/utils_function";
 
             // Display layers
             p.push();
-            p.translate(gridX, arg.layout.title_height);
+            p.translate(gridX, 0);
             p.image(gfx_heatmaps[gridIndex], 0, 0);
             p.image(gfx_vectorfields[gridIndex], 0, 0);
             p.pop();
         }
 
-        // Draw titles
-        drawTitles();
     }
 
-    function drawTitles() {
-        p.fill(255);
-        p.noStroke();
-        p.textAlign(p.CENTER, p.TOP);
-        p.textSize(14);
-
-        const titles = [
-            "Raw Sobel (No Fallback)",
-            "Sobel with Same Distance Fallback",
-            "Sobel with Min Neighbor Fallback"
-        ];
-
-        for (let i = 0; i < 3; i++) {
-            let gridX = getGridX(i);
-            let titleX = gridX + arg.layout.grid_width / 2;
-            let titleY = 10;
-            p.text(titles[i], titleX, titleY);
-        }
-    }
 
     p.mouseMoved = () => {
         updateTargetFromMouse();
@@ -509,5 +491,22 @@ import { reset_node_grid } from "../common/utils_function";
 </script>
 
 <style>
+.caca{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
 
+.cacaTitle{
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 20px;
+    text-align: center;
+}
+
+p{
+    font-size: 15px;
+}
 </style>

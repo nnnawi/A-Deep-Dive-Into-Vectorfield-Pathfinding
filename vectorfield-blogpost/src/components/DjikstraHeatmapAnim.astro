@@ -4,17 +4,17 @@
 
 <div class="djikstra-container">
   <div id="djikstraHeatmapAnim"></div>
-  <div class="controls">
-    <!-- <div class="controls-header">
-      <p class="controls-title">Dijkstra Distance Map</p>
-      <p>Each tile is colored by its distance to the cursor. Move your mouse over the canvas to update the target, or drag to draw walls.</p>
-    </div> -->
 
+ <div class="controls-header">
+        <!-- <p class="controls-title">Dijkstra Distance Map</p> -->
+      <p>Each tile is colored by its distance to the cursor. Click & drag mouse to add or remove walls.</p>
+    </div>
+    <div class="controls">
     <div class="single-control">
       <span>Distance Kernel</span>
       <div class="distance-selector-container">
         <button class="dist-btn" data-distance="Euclidian">Euclidean</button>
-        <button class="dist-btn" data-distance="Tchebishev">Chebyshev</button>
+        <button class="dist-btn" data-distance="Tchebishev">Tchebyshev</button>
         <button class="dist-btn" data-distance="Manhattan">Manhattan</button>
       </div>
     </div>
@@ -33,7 +33,8 @@
         <button class="show-btn" data-show="false">Off</button>
       </div>
     </div>
-  </div>
+  </div>      
+
 </div>
 
 <script>
@@ -295,7 +296,7 @@ import {
     padding-bottom: 20px;
     /* padding-bottom: 30px; */
     border-radius: 12px;
-    gap: 20px;
+    gap: 15px;
     /* border: 1.2px solid #e5e0d4; */
   }
 
@@ -326,12 +327,11 @@ import {
   }
 
   .controls-header {
-    background-color: #e4e4d9;
-    border-radius: 8px;
-    padding: 14px 18px;
+    /* background-color: #e4e4d9; */
+    padding-bottom: 4px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    
   }
 
   .controls-title {
@@ -373,9 +373,9 @@ import {
 
   p {
     margin: 0;
-    font-size: 13px;
+    font-size: 14px;
     line-height: 1.6;
-    color: #615f59;
+        color: #837a7a;
   }
 
   button {
