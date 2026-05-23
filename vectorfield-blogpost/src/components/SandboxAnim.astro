@@ -1,0 +1,744 @@
+---
+// Interactive Sandbox Animation
+---
+
+<div class="sandbox-container">
+  <div id="sandboxCanvas"></div>
+  <p>Interactive Sandbox: Configure the simulation to your liking using the controls below.</p>
+
+  <div class="controls-row">
+
+    <div class="single-control">
+      <span>Heatmap</span>
+      <select id="heatmap-select" class="dropdown-styled">
+        <option value="djikstra_Euclidian">Djikstra (Euclidian)</option>
+        <option value="djikstra_Manhattan">Djikstra (Manhattan)</option>
+        <option value="djikstra_Tchebishev">Djikstra (Tchebyshev)</option>
+        <option value="eikonal">Eikonal Equation</option>
+      </select>
+    </div>
+
+   
+
+    <div class="single-control" style="flex: 1.5;">
+      <span>Vector Field</span>
+      <select id="vector-select" class="dropdown-styled">
+        <option value="sobel">Sobel</option>
+        <option value="min">Min Neighbor</option>
+        <option value="function">Function</option>
+      </select>
+      <div id="function-config" style="display: none; margin-top: 5px;">
+        <input type="text" id="custom-equation-input" class="dropdown-styled" style="width:100%; border: 1px solid #ccc; font-family: monospace;" placeholder="-log(x+1)" value="-log(x+1)" />
+      </div>
+    </div>
+
+     <div class="single-control">
+      <span>Fallback</span>
+      <select id="fallback-select" class="dropdown-styled">
+        <option value="none">No Fallback</option>
+        <option value="center" selected>Center Node</option>
+        <option value="min">Min Neighbor</option>
+      </select>
+    </div>
+
+     <div class="single-control">
+      <span>Color</span>
+      <select id="color-select" class="dropdown-styled">
+        <option value="hue">Hue</option>
+        <option value="gradient">Magma</option>
+        <option value="grayscale">Gray</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="controls-row">
+       <div class="single-control" style="flex: 1.5; min-width: 180px;">
+      <span>Mode</span>
+      <div class="motion-selector-container">
+        <button class="mode-btn active" data-mode="wall">Draw Walls</button>
+        <button class="mode-btn" data-mode="pathtrace">Path Trace</button>
+      </div>
+    </div>
+
+    <div class="single-control" style="min-width: 60px;">
+      <span>Dist Val</span>
+      <div class="motion-selector-container" id="distance-toggle-group">
+        <button class="dist-btn" data-show="true">On</button>
+        <button class="dist-btn active" data-show="false">Off</button>
+      </div>
+    </div>
+
+    <div class="single-control" style="flex: 3;">
+      <span>Particles</span>
+      <div id="particles-config" style="margin-top: 3px; display:flex; flex-wrap:wrap; gap:10px;">
+        
+        <div style="padding: 4px 0px; outline: none; display:flex; align-items:center;">
+          <span style="font-size: 9px; min-width:35px; margin-right:5px;">MOT</span>
+          <div class="motion-selector-container" style="padding: 0;">
+             <button class="motion-btn active" data-motion="off" style="padding:4px 8px;">Off</button>
+             <button class="motion-btn" data-motion="normal" style="padding:4px 8px;">Normal</button>
+             <button class="motion-btn" data-motion="lerp" style="padding:4px 8px;">LERP</button>
+          </div>
+        </div>
+
+        <div class="slider-wrapper particle-slider-group" style="height: 30px; flex: 1; min-width: 120px; opacity:0.5; pointer-events:none;">
+          <span style="font-size: 9px; min-width:25px;">SPD</span>
+          <input type="range" id="agent-speed" min="0.5" max="5" step="0.1" value="2.0" />
+          <span class="value-display" id="agent-speed-val">2.0</span>
+        </div>
+
+        <div style="flex-basis: 100%; height: 0; margin: 0;"></div>
+
+        <div class="slider-wrapper particle-slider-group" style="height: 30px; flex: 1; opacity:0.5; pointer-events:none;">
+          <span style="font-size: 9px; min-width:25px;">NUM</span>
+          <input type="range" id="agent-count" min="1" max="40" step="1" value="10" />
+          <span class="value-display" id="agent-count-val">10</span>
+        </div>
+
+        <div class="slider-wrapper particle-slider-group" style="height: 30px; flex: 1; opacity:0.5; pointer-events:none;">
+          <span style="font-size: 9px; min-width:35px;">ALPHA</span>
+          <input type="range" id="agent-alpha" min="0.01" max="1" step="0.01" value="0.15" />
+          <span class="value-display" id="agent-alpha-val">0.15</span>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // @ts-nocheck
+  import { dist_arr } from '../common/constant';
+import { gfx_draw_grid, gfx_draw_heatmap, gfx_draw_vectorfield } from '../common/gfx_function';
+import { setupVisibilityPause } from '../common/p5_utils';
+import { djikstra_algorithm, eikonal_solver, node } from '../common/solver_function';
+import { is_in_grid, is_in_screen, reset_node_grid } from '../common/utils_function';
+import { update_vectorfield } from '../common/vectorfield_function';
+
+  const arg = {
+    screen: { w: 600, h: 450 },
+    grid: { tile_size: 25, w: 0, h: 0, stroke: 100, stroke_weight: 1 },
+    arrow: { stroke: 125, stroke_weight: 1.5, main_len: 14, scd_len: 5, angle: 210 },
+  };
+
+  const config = {
+    interactionMode: 'wall',
+    heatmap: 'djikstra_Euclidian',
+    vector: 'sobel',
+    equation: '-log(x+1)',
+    fallback: 'center',
+    color: 'hue',
+    show_distance: false,
+    particles: false,
+    use_lerp: false,
+    speed: 2.0,
+    count: 10,
+    alpha: 0.15
+  };
+
+  var node_grid;
+  var agents = [];
+  var gfx_grid;
+  var gfx_heatmap;
+  var gfx_vectorfield;
+  var gfx_agents;
+  var gfx_path;
+
+  var is_dragging = false;
+  var wallpen_state = true;
+  var target = { x: 5, y: 5 };
+  
+  var mouse_cell = { x: -1, y: -1 };
+
+  function synchronizeDisplayValues() {
+    for (let y = 0; y < arg.grid.h; y++) {
+      for (let x = 0; x < arg.grid.w; x++) {
+        const current_node = node_grid[y][x];
+        if (current_node.isWall) continue;
+        if (!Number.isFinite(current_node.dist)) {
+          current_node.display_dist = Infinity;
+        } else if (!Number.isFinite(current_node.display_dist) || Math.abs(current_node.display_dist - current_node.dist) > 500) {
+          current_node.display_dist = current_node.dist;
+        }
+      }
+    }
+  }
+
+  const sketch = (p) => {
+    class Agent {
+      constructor(x, y) {
+        this.pos = p.createVector(x, y);
+        this.velocity = p.createVector(0, 0);
+        this.size = 8;
+        this.reachedTarget = false;
+      }
+      
+      update(use_lerp, speed, alpha, autoRespawn = true) {
+        let grid_x = Math.floor(this.pos.x / arg.grid.tile_size);
+        let grid_y = Math.floor(this.pos.y / arg.grid.tile_size);
+
+        if (grid_x < 0 || grid_x >= arg.grid.w || grid_y < 0 || grid_y >= arg.grid.h) {
+          if (autoRespawn) this.respawn(); return;
+        }
+
+        let current_node = node_grid[grid_y][grid_x];
+        if (current_node.isWall || (grid_x === target.x && grid_y === target.y)) {
+          if (autoRespawn) this.respawn();
+          else this.reachedTarget = true;
+          return;
+        }
+
+        let angle = current_node.vector_angle;
+        let target_velocity = p.createVector(Math.cos(angle + p.PI / 2), Math.sin(angle + p.PI / 2)).mult(speed);
+
+        if (use_lerp) this.velocity.lerp(target_velocity, alpha);
+        else this.velocity = target_velocity.copy();
+
+        let next_pos = p5.Vector.add(this.pos, this.velocity);
+        next_pos = this.resolveCollisionWithVectorField(this.pos, next_pos, this.velocity);
+        this.pos = next_pos;
+
+        let dist_to_target = p.dist(this.pos.x, this.pos.y, (target.x + 0.5) * arg.grid.tile_size, (target.y + 0.5) * arg.grid.tile_size);
+        if (dist_to_target < arg.grid.tile_size) {
+           if (autoRespawn) this.respawn();
+           else this.reachedTarget = true;
+        }
+      }
+
+      resolveCollisionWithVectorField(start_pos, end_pos, velocity) {
+        let end_grid_x = Math.floor(end_pos.x / arg.grid.tile_size);
+        let end_grid_y = Math.floor(end_pos.y / arg.grid.tile_size);
+
+        if (
+          end_grid_x < 0 || end_grid_x >= arg.grid.w ||
+          end_grid_y < 0 || end_grid_y >= arg.grid.h
+        ) {
+          return this.slideAlongBoundary(start_pos, velocity);
+        }
+
+        let end_is_wall = node_grid[end_grid_y][end_grid_x].isWall;
+
+        let start_grid_x = Math.floor(start_pos.x / arg.grid.tile_size);
+        let start_grid_y = Math.floor(start_pos.y / arg.grid.tile_size);
+
+        let diagonal_blocked = false;
+        if (start_grid_x !== end_grid_x && start_grid_y !== end_grid_y) {
+          let wall_x = node_grid[start_grid_y][end_grid_x].isWall;
+          let wall_y = node_grid[end_grid_y][start_grid_x].isWall;
+          if (wall_x && wall_y) {
+            diagonal_blocked = true;
+          }
+        }
+
+        if (!end_is_wall && !diagonal_blocked) {
+          return end_pos.copy();
+        }
+
+        let slide_x_pos = p.createVector(end_pos.x, start_pos.y);
+        let slide_x_valid = this.isPositionValid(slide_x_pos);
+
+        let slide_y_pos = p.createVector(start_pos.x, end_pos.y);
+        let slide_y_valid = this.isPositionValid(slide_y_pos);
+
+        if (slide_x_valid && slide_y_valid) {
+          let x_component = Math.abs(velocity.x);
+          let y_component = Math.abs(velocity.y);
+          return x_component > y_component ? slide_x_pos : slide_y_pos;
+        } else if (slide_x_valid) {
+          return slide_x_pos;
+        } else if (slide_y_valid) {
+          return slide_y_pos;
+        }
+
+        let reduced_velocity = velocity.copy().mult(0.5);
+        let reduced_pos = p5.Vector.add(start_pos, reduced_velocity);
+
+        if (this.isPositionValid(reduced_pos)) {
+          return reduced_pos;
+        }
+
+        return start_pos.copy();
+      }
+
+      slideAlongBoundary(start_pos, velocity) {
+        let new_x = start_pos.x + velocity.x;
+        let new_y = start_pos.y + velocity.y;
+
+        let max_x = (arg.grid.w - 0.5) * arg.grid.tile_size;
+        let min_x = 0.5 * arg.grid.tile_size;
+        if (new_x < min_x) new_x = min_x;
+        if (new_x > max_x) new_x = max_x;
+
+        let max_y = (arg.grid.h - 0.5) * arg.grid.tile_size;
+        let min_y = 0.5 * arg.grid.tile_size;
+        if (new_y < min_y) new_y = min_y;
+        if (new_y > max_y) new_y = max_y;
+
+        return p.createVector(new_x, new_y);
+      }
+
+      isPositionValid(pos) {
+        let grid_x = Math.floor(pos.x / arg.grid.tile_size);
+        let grid_y = Math.floor(pos.y / arg.grid.tile_size);
+        if (grid_x < 0 || grid_x >= arg.grid.w || grid_y < 0 || grid_y >= arg.grid.h) return false;
+        return !node_grid[grid_y][grid_x].isWall;
+      }
+
+      respawn() {
+        let max_attempts = 100, attempts = 0;
+        while (attempts < max_attempts) {
+          let gx = Math.floor(p.random(arg.grid.w));
+          let gy = Math.floor(p.random(arg.grid.h));
+          if (!node_grid[gy][gx].isWall && !(gx === target.x && gy === target.y)) {
+            this.pos.x = (gx + 0.5) * arg.grid.tile_size;
+            this.pos.y = (gy + 0.5) * arg.grid.tile_size;
+            this.velocity = p.createVector(0, 0); break;
+          }
+          attempts++;
+        }
+      }
+
+      draw() {
+        gfx_agents.fill(255); gfx_agents.noStroke();
+        gfx_agents.ellipse(this.pos.x, this.pos.y, this.size, this.size);
+        gfx_agents.stroke(255, 150); gfx_agents.strokeWeight(1.5);
+        gfx_agents.line(this.pos.x, this.pos.y, this.pos.x - this.velocity.x * 2, this.pos.y - this.velocity.y * 2);
+      }
+    }
+
+    const refreshGrid = () => {
+      reset_node_grid(node_grid);
+      if (config.heatmap === 'eikonal') {
+        eikonal_solver(node_grid, target);
+      } else {
+        let kernelName = config.heatmap.split('_')[1];
+        djikstra_algorithm(node_grid, target, dist_arr[kernelName], arg);
+      }
+      synchronizeDisplayValues();
+      update_vectorfield(p, node_grid, arg, config.vector, { equation: config.equation, fallback: config.fallback });
+    };
+
+    p.setup = () => {
+      const container = document.getElementById('sandboxCanvas');
+      arg.screen.w = container.offsetWidth;
+      let canvas = p.createCanvas(arg.screen.w, arg.screen.h);
+      canvas.parent('sandboxCanvas');
+
+      arg.grid.w = p.floor(arg.screen.w / arg.grid.tile_size);
+      arg.grid.h = p.floor(arg.screen.h / arg.grid.tile_size);
+
+      node_grid = new Array(arg.grid.h).fill(null).map((_, y) => new Array(arg.grid.w).fill(null).map((_, x) => new node(x, y)));
+
+      gfx_grid = p.createGraphics(arg.screen.w, arg.screen.h);
+      gfx_draw_grid(p, gfx_grid, arg);
+
+      gfx_heatmap = p.createGraphics(arg.screen.w, arg.screen.h);
+      gfx_vectorfield = p.createGraphics(arg.screen.w, arg.screen.h);
+      gfx_agents = p.createGraphics(arg.screen.w, arg.screen.h);
+      gfx_path = p.createGraphics(arg.screen.w, arg.screen.h);
+
+      for (let i = 0; i < config.count; i++) {
+        let a = new Agent(0, 0); a.respawn(); agents.push(a);
+      }
+
+      refreshGrid();
+      bindControls();
+    };
+
+    // Binding logic
+    const bindControls = () => {
+      const modeButtons = document.querySelectorAll('.mode-btn');
+      modeButtons.forEach(btn => {
+        btn.addEventListener('click', e => {
+          modeButtons.forEach(b => b.classList.remove('active'));
+          e.target.classList.add('active');
+          config.interactionMode = e.target.getAttribute('data-mode');
+        });
+      });
+
+      document.getElementById('heatmap-select').addEventListener('change', e => {
+        config.heatmap = e.target.value; refreshGrid();
+      });
+
+      const vectorSelect = document.getElementById('vector-select');
+      const functionConfig = document.getElementById('function-config');
+      const customInput = document.getElementById('custom-equation-input');
+
+      vectorSelect.addEventListener('change', e => {
+        config.vector = e.target.value;
+        functionConfig.style.display = config.vector === 'function' ? 'block' : 'none';
+        refreshGrid();
+      });
+
+      document.getElementById('color-select').addEventListener('change', e => {
+        config.color = e.target.value;
+      });
+
+      const distBtns = document.querySelectorAll('.dist-btn');
+      distBtns.forEach(btn => {
+        btn.addEventListener('click', e => {
+          distBtns.forEach(b => b.classList.remove('active'));
+          e.target.classList.add('active');
+          config.show_distance = e.target.getAttribute('data-show') === 'true';
+        });
+      });
+
+      customInput.addEventListener('input', e => {
+        config.equation = e.target.value; refreshGrid();
+      });
+
+      document.getElementById('fallback-select').addEventListener('change', e => {
+        config.fallback = e.target.value; refreshGrid();
+      });
+
+      document.getElementById('agent-speed').addEventListener('input', e => {
+        config.speed = parseFloat(e.target.value);
+        document.getElementById('agent-speed-val').innerText = config.speed.toFixed(1);
+      });
+
+      document.getElementById('agent-count').addEventListener('input', e => {
+        let new_count = parseInt(e.target.value);
+        document.getElementById('agent-count-val').innerText = new_count;
+        if (new_count > agents.length) {
+          for(let i = agents.length; i < new_count; i++) { let a=new Agent(0,0); a.respawn(); agents.push(a); }
+        } else {
+          agents.splice(new_count);
+        }
+        config.count = new_count;
+      });
+
+      const motionBtns = document.querySelectorAll('.motion-btn');
+      const pSliders = document.querySelectorAll('.particle-slider-group');
+      motionBtns.forEach(btn => {
+        btn.addEventListener('click', e => {
+          motionBtns.forEach(b => b.classList.remove('active'));
+          e.target.classList.add('active');
+          let val = e.target.getAttribute('data-motion');
+          pSliders.forEach(slider => {
+             slider.style.opacity = val === 'off' ? '0.5' : '1';
+             slider.style.pointerEvents = val === 'off' ? 'none' : 'auto';
+          });
+          if (val === 'off') {
+            config.particles = false;
+          } else {
+            config.particles = true;
+            config.use_lerp = (val === 'lerp');
+          }
+        });
+      });
+
+      // Ensure active modes sync at start
+      const modeButtonsList = document.querySelectorAll('.mode-btn');
+      modeButtonsList.forEach(btn => {
+        if (btn.getAttribute('data-mode') === config.interactionMode) btn.classList.add('active');
+        else btn.classList.remove('active');
+      });
+
+      const distButtonsList = document.querySelectorAll('.dist-btn');
+      distButtonsList.forEach(btn => {
+        if (btn.getAttribute('data-show') === String(config.show_distance)) btn.classList.add('active');
+        else btn.classList.remove('active');
+      });
+
+      const motionButtonsList = document.querySelectorAll('.motion-btn');
+      motionButtonsList.forEach(btn => {
+        let val = btn.getAttribute('data-motion');
+        let shouldBeActive = false;
+        if (!config.particles && val === 'off') shouldBeActive = true;
+        if (config.particles && !config.use_lerp && val === 'normal') shouldBeActive = true;
+        if (config.particles && config.use_lerp && val === 'lerp') shouldBeActive = true;
+        
+        if (shouldBeActive) btn.classList.add('active');
+        else btn.classList.remove('active');
+      });
+
+      document.getElementById('agent-alpha').addEventListener('input', e => {
+        config.alpha = parseFloat(e.target.value);
+        document.getElementById('agent-alpha-val').innerText = config.alpha.toFixed(2);
+      });
+    };
+
+    p.draw = () => {
+      p.clear();
+      for (let y = 0; y < node_grid.length; y++) {
+        for (let x = 0; x < node_grid[0].length; x++) {
+          let current_node = node_grid[y][x];
+          current_node.update_display_dist(p, 0.05);
+          current_node.update_display_vector_angle(p, 0.05);
+        }
+      }
+
+      gfx_draw_heatmap(p, gfx_heatmap, node_grid, target, arg, config.color, 25);
+      gfx_draw_vectorfield(p, gfx_vectorfield, node_grid, target, arg);
+
+      p.image(gfx_heatmap, 0, 0);
+
+      if (config.show_distance) {
+          for (let y = 0; y < node_grid.length; y++) {
+            for (let x = 0; x < node_grid[0].length; x++) {
+              let current_node = node_grid[y][x];
+              if (!current_node.isWall && current_node.display_dist !== Infinity && Number.isFinite(current_node.display_dist)) {
+                  let textColor;
+                  if (config.color === 'gradient') {
+                    let t = Math.min(current_node.display_dist / 25, 1);
+                    textColor = t < 0.35 ? 0 : 255;
+                  } else if (config.color === 'hue') {
+                    textColor = 0;
+                  } else {
+                    let brightness = p.map(current_node.display_dist, 0, 25, 255, 0);
+                    textColor = brightness > 150 ? 0 : 255;
+                  }
+                  p.fill(textColor);
+                  p.noStroke();
+                  p.textAlign(p.CENTER, p.CENTER);
+                  p.textSize(9);
+                  p.text(current_node.display_dist.toFixed(1), (x + 0.5) * arg.grid.tile_size, (y + 0.5) * arg.grid.tile_size);
+              }
+            }
+          }
+      } else {
+          p.image(gfx_vectorfield, 0, 0);
+      }
+
+      // Path Tracing Mode Overlays
+      if (config.interactionMode === 'pathtrace' && mouse_cell.x >= 0 && mouse_cell.y >= 0) {
+        drawPathTrace();
+        p.image(gfx_path, 0, 0);
+      }
+
+      // Particles Layers
+      if (config.particles) {
+        gfx_agents.clear();
+        for (let i = 0; i < agents.length; i++) {
+          agents[i].update(config.use_lerp, config.speed, config.alpha);
+          agents[i].draw();
+        }
+        p.image(gfx_agents, 0, 0);
+      }
+    };
+
+    const drawPathTrace = () => {
+       gfx_path.clear();
+       const max_steps = 1000;
+       
+       let px = p.mouseX;
+       let py = p.mouseY;
+
+       let tracer = new Agent(px, py);
+       
+       gfx_path.noFill();
+       gfx_path.stroke(255);
+       gfx_path.strokeWeight(3);
+       gfx_path.beginShape();
+       gfx_path.vertex(tracer.pos.x, tracer.pos.y);
+       
+       for(let i=0; i<max_steps; i++){
+          let prx = tracer.pos.x;
+          let pry = tracer.pos.y;
+
+          let gx = Math.floor(prx / arg.grid.tile_size);
+          let gy = Math.floor(pry / arg.grid.tile_size);
+          if (gx >= 0 && gx < arg.grid.w && gy >= 0 && gy < arg.grid.h && node_grid[gy][gx].isWall) break;
+
+          tracer.update(false, 5.0, 1.0, false);
+          gfx_path.vertex(tracer.pos.x, tracer.pos.y);
+
+          if (tracer.reachedTarget) break;
+          // anti-stuck check
+          if (p.dist(prx, pry, tracer.pos.x, tracer.pos.y) < 0.1) break;
+       }
+       gfx_path.endShape();
+    };
+
+    p.mouseMoved = () => {
+      let gx = p.floor(p.mouseX / arg.grid.tile_size);
+      let gy = p.floor(p.mouseY / arg.grid.tile_size);
+
+      if (is_in_screen(p.mouseX, p.mouseY, arg) && is_in_grid(gx, gy, arg)) {
+         mouse_cell.x = gx; mouse_cell.y = gy;
+         
+         if (config.interactionMode === 'wall' && !is_dragging) {
+            target.x = gx;
+            target.y = gy;
+            refreshGrid();
+         }
+      } else {
+         mouse_cell.x = -1; mouse_cell.y = -1;
+      }
+    };
+
+    p.mousePressed = () => {
+      if(!is_in_screen(p.mouseX, p.mouseY, arg)) return;
+      let gx = Math.floor(p.mouseX / arg.grid.tile_size);
+      let gy = Math.floor(p.mouseY / arg.grid.tile_size);
+      if(!is_in_grid(gx, gy, arg)) return;
+
+      if(config.interactionMode === 'wall') {
+        is_dragging = true;
+        wallpen_state = !node_grid[gy][gx].isWall;
+        node_grid[gy][gx].isWall = wallpen_state;
+        refreshGrid();
+      } else if (config.interactionMode === 'pathtrace') {
+        target.x = gx;
+        target.y = gy;
+        refreshGrid();
+      }
+    };
+
+    p.mouseDragged = () => {
+      if(!is_in_screen(p.mouseX, p.mouseY, arg)) return;
+      if(!is_dragging) return;
+      
+      let gx = Math.floor(p.mouseX / arg.grid.tile_size);
+      let gy = Math.floor(p.mouseY / arg.grid.tile_size);
+      if(!is_in_grid(gx, gy, arg)) return;
+
+      if(config.interactionMode === 'wall') {
+        if(node_grid[gy][gx].isWall !== wallpen_state) {
+            node_grid[gy][gx].isWall = wallpen_state;
+            refreshGrid();
+        }
+      }
+    };
+
+    p.mouseReleased = () => { is_dragging = false; };
+  };
+
+  setupVisibilityPause(new p5(sketch), 'sandboxCanvas');
+</script>
+
+<style>
+  .sandbox-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 20px;
+    padding-bottom: 20px;
+    border-radius: 12px;
+    gap: 20px;
+  }
+
+  p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #837a7a;
+  }
+
+  #sandboxCanvas {
+    overflow: hidden;
+    border-radius: 8px;
+    width: 100%;
+    height: fit-content;
+    box-shadow: rgba(0, 0, 0, 0.151) 0px 0px 5px;
+  }
+
+  #sandboxCanvas canvas {
+    display: block;
+  }
+
+  .controls-row {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    padding: 0 10px;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 10px;
+  }
+
+  .single-control {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+    min-width: 120px;
+  }
+
+  span {
+    display: block;
+    font-family: "Inter", monospace;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--font-body);
+  }
+
+  .dropdown-styled {
+    font-family: "Inter", monospace;
+    font-size: 12px;
+    color: #615f59;
+    padding: 5px;
+    outline: 2px solid #dbd8d4;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    cursor: pointer;
+    width: 100%;
+  }
+
+  .dropdown-styled:focus {
+    outline: 2px solid #3d3a36;
+  }
+
+  .motion-selector-container {
+    width: fit-content;
+    display: flex;
+    flex-direction: row;
+    outline: 2px solid #dbd8d4;
+    border-radius: 8px;
+    padding: 2px;
+  }
+
+  button {
+    font-family: "Inter";
+    font-size: 12px;
+    color: #615f59;
+    padding: 6px 10px;
+    cursor: pointer;
+    transition: background 0.15s;
+    border: none;
+    background: none;
+    border-radius: 6px;
+  }
+
+  button:hover {
+    background-color: rgba(0, 0, 0, 0.06);
+  }
+
+  button.active {
+    background-color: #3d3a36;
+    color: #eeeadf;
+  }
+
+  .slider-wrapper {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    outline: 2px solid #dbd8d4;
+    border-radius: 8px;
+    padding: 8px 10px;
+  }
+
+  input[type='range'] {
+    width: 100%;
+    cursor: pointer;
+    accent-color: #3d3a36;
+  }
+
+  .value-display {
+    font-family: "Inter", monospace;
+    font-size: 11px;
+    color: #615f59;
+    display: inline-block;
+    min-width: 25px;
+    text-align: right;
+  }
+
+  input[type='checkbox'] {
+    accent-color: #3d3a36;
+  }
+</style>

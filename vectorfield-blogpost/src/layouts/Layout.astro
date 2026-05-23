@@ -408,9 +408,46 @@
           font-size: 1.5rem;
         }
       }
+
+      .header {
+        position: absolute;
+        top: 2rem;
+        left: 2rem;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 0.75rem;
+        z-index: 100;
+      }
+
+      .header-top {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .author-name {
+        font-family: var(--font-body);
+        font-size: 0.85rem;
+        color: var(--color-text-light);
+        font-weight: 400;
+        letter-spacing: 0.3px;
+        text-decoration: none;
+        transition: color 0.3s ease;
+        cursor: pointer;
+      }
+
+      .author-name:hover {
+        color: var(--color-blue);
+      }
     </style>
   </head>
   <body>
+    <header class="header">
+      <div class="header-top">
+        <a href="https://github.com/nnnawi" class="author-name" target="_blank" rel="noopener noreferrer">Made by Iwan Ibnoulouafi</a>
+      </div>
+    </header>
     <div class="container">
       <slot />
     </div>

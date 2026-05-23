@@ -11,7 +11,7 @@ import MinNeighborVectorfieldAnim from 'MinNeighborVectorfieldAnim.astro'
 import WeightedNeighborVectorfieldAnim from 'WeightedNeighborVectorfieldAnim.astro'
 import AgentMotionVectorfieldAnim from 'AgentMotionVectorfieldAnim.astro'
 import FallbackComparison from 'FallbackComparison.astro'
-
+import SandboxAnim from './SandboxAnim.astro';
 
 <video autoplay muted loop playsinline style="width: 100%;">
   <source src="/header-animation.mp4" type="video/mp4">
@@ -156,6 +156,9 @@ In graph terms, walkable tiles stay as nodes while walls are simply removed from
 
 <br />
 <br/>
+<br/>
+<br/>
+
 
 ## Overview of Djikstra algorithm
 
@@ -264,6 +267,8 @@ To find the shortest path from any node, simply follow these neighbors step by s
 
 <br/>
 <br/>
+<br/>
+<br/>
 
 ## How to construct VFP
 
@@ -275,10 +280,11 @@ As mentioned earlier, vectorfield pathfinding builds directly on the Dijkstra al
 
 The key innovation in **VFP** lies in how the second step is interpreted. Instead of tracing paths **explicitly**, the algorithm assigns a vector _(a 2D arrow)_ to each tile, pointing in the direction of the next step along the shortest path toward the target. This results in a “vector field” that **intuitively guides movement** across the grid.
 
+<br/>
 
 ### Step 1 : Building the distance heatmap :
 
-#### Using the Djisktra algorithm
+#### Using the <u>Djisktra algorithm</u> :
 
 One way to build VFP's heatmap is to use a **modified version of Dijkstra’s algorithm** that propagates distance values outward from the target node, taking walls or obstacles into account.
 However, unlike the original Dijkstra algorithm, this version **doesn't store the previous node** for each tile, since we don’t need to explicitly reconstruct paths.
@@ -297,7 +303,7 @@ By selecting different distance matrices, we can control how **distances are acc
 <br/>
 <br/>
 
-#### Using the Eikonal equation
+#### Using the <u>Eikonal equation</u> :
 
 Another way to obtain the distance heatmap of a given 2D grid populated with walls is by solving the [Eikonal Equation](https://en.wikipedia.org/wiki/Eikonal_equation). Back in 2016, I was unaware of this method but I now found it so elegant and intuitive that I had to share it.
 
@@ -306,7 +312,7 @@ Another way to obtain the distance heatmap of a given 2D grid populated with wal
 For a bit of context the Eikonal equation is originally a **non-linear PDE** that helps models how a **wavefront propagates through a medium** with varying properties.
 Intuitively we can think of it as the equation that computes the **shortest travel time** or minimum distance from a **source point to every other point in a domain**, taking into account varying speeds or costs throughout the space.
 
-It answers the fundamental question: "What's the fastest way to get from here to there?".
+It answers the fundamental question: *"What's the fastest way to get from here to there?"*.
 
 
 <div class="expandable-container">
@@ -338,6 +344,9 @@ With these settings, computing the distance heatmap reduces to solving the Eikon
 <button class="expandable-toggle"><span class="expandable-toggle-icon">▼</span> <span class="expandable-toggle-text">Full explanation</span></button>
 </div>
 
+<br/>
+<br/>
+
 <EikonalHeatmapAnim/>
 
 The eikonal equation offers a **continuous alternative** to Dijkstra’s algorithm for heatmap generation though it’s originally from a different field and wasn’t designed for graph problems.
@@ -346,7 +355,7 @@ The eikonal equation offers a **continuous alternative** to Dijkstra’s algorit
 <div class="info-container">
 <div class="title">What's the difference with Djikstra</div>
 <p>
-Because it’s continuous, the eikonal solver produces **smooth, floating-point distance values**, unlike Dijkstra, which gives discrete steps.
+Because it’s continuous, the eikonal solver spontaneously produces **smooth, floating-point distance values**, unlike Dijkstra, which gives discrete steps.
 In the eikonal model, the wavefront spreads out in a circular pattern, like a ripple in water. 
 <br/>
 In contrast, Dijkstra’s wavefront can look square, diamond-shaped, or roughly round depending on the distance kernel used.
@@ -354,7 +363,12 @@ This makes the eikonal approach appealing: it gives a more **natural, physics-in
 </p>
 </div>
 
-### Step - 2 : Building the vectorfield
+<br/>
+<br/>
+<br/>
+
+
+### Step 2 : Building the vectorfield :
 
 It's now time to build the vectorfield: the map that assigns to each grid cell a **direction pointing toward the shortest path** to the target. 
 In other words, it tells an agent standing on any tile *which way to go to reach the goal as quickly as possible*.
@@ -365,7 +379,9 @@ Since our heatmap is defined over a **2D grid**, computing its gradient gives us
 
 And because the heatmap stores distances to the target, following the **opposite of the gradient** leads along the fastest decrease in distance, meaning the **shortest path** to the target. So by simply following these vectors, an agent can continuously make **locally optimal decisions** that guide it along a **globally efficient route**.
 
-#### Using the Sobel-operator :
+<br/>
+
+#### Using the <u>Sobel-operator</u> :
 
 One effective way to compute the gradient of the distance heatmap *(and thus derive the vector field)* is to use a classic **computer vision tool** : [Sobel operators](https://en.wikipedia.org/wiki/Sobel_operator) 
 
@@ -410,9 +426,15 @@ $$
 <button class="expandable-toggle"><span class="expandable-toggle-icon">▼</span> <span class="expandable-toggle-text">Full explanation</span></button>
 </div>
 
+<br/>
+<br/>
+
 <SobelVectorfieldAnim/>
 
-### Using the minimum distance neighbor direction :
+<br/>
+<br/>
+
+#### Using the <u>minDistance neighbor direction</u> :
 
 A simpler method to derive the vectorfield relies on a straightforward observation : the next step toward the goal is always the **neighbor** with the **lowest distance value**.
 
@@ -437,12 +459,18 @@ Since Dijkstra already identifies the **optimal neighbor** for every node, those
 </p>
 </div>
 
+<br/>
+<br/>
+
 <MinNeighborVectorfieldAnim/>
 
-### Using the function weighted neighbor sum method :
+<br/>
+<br/>
+
+#### Using the <u>function weighted neighbor method</u> :
 
 While working on VFP, I found the *“minimum neighbor”* approach too rigid since it only allows movement in **8 fixed directions**.
-To fix this lack of smoothness, I used an alternative I call the weighted neighbor sum : 
+To fix this lack of smoothness, I used an alternative I call the function weighted neighbor : 
 
 <div class="expandable-container">
 <div class="title">Full explanation — Weighted Neighbor Sum</div>
@@ -456,7 +484,7 @@ $$
 
 and let φ(**p**ᵢ) be its distance value.
 
-Each neighbor gets a weight based on how close it is to the goal, using a function like:
+Each neighbor gets a weight based on how close it is to the goal, using any decreasing function like:
 
 $$
 w(\phi) = e^{-\alpha\phi}, \quad w(\phi) = \frac{1}{\phi}, \quad \text{or} \quad w(\phi) = \frac{1}{\phi^2}
@@ -477,9 +505,15 @@ Instead of picking the single best neighbor, we **blend all neighbor directions*
 Normalizing the sum gives a **smooth** unit vector that avoids the **snapping artifacts** of a greedy approach.
 It essentially **approximates** the opposite of the distance gradient, pointing toward the steepest descent. 
 
-<WeightedNeighborVectorfieldAnim/>
+<br/>
 
-## Agent Motion Over a Vector Field
+<WeightedNeighborVectorfieldAnim/>
+<br/>
+<br/>
+<br/>
+<br/>
+
+## Agent Motion Over Vectorfield
 
 Once the vector field has been computed, guiding an agent becomes straightforward.
 The grid contains a 2D vector for each tile that points toward the goal.
@@ -501,6 +535,8 @@ Where:
 
 This yields basic motion that aligns the agent with the vector field.
 
+<br/>
+
 ### Velocity Smoothing with LERP
 
 To avoid **jittery** or **abrupt changes** in direction when crossing from one tile to another, you can **smooth** the velocity using linear interpolation (LERP).
@@ -516,10 +552,16 @@ $$
 
 Where $\alpha \in [0, 1]$ controls smoothing — low $\alpha$ yields slower turning, high $\alpha$ makes the agent more responsive.
 
+<br/>
 <AgentMotionVectorfieldAnim/>
 
+<br/>
+<br/>
+<br/>
+<br/>
 
-## Local Limitations and Edge Cases in Vector Field Computation
+
+## Local Limitations and Edge Cases in VFP Computation
 
 When computing the vectorfield, two major types of edge cases arise: **grid boundaries** and **walls** in neighbor positions.
 Both situations present the same core issue: some of the 8-connected neighbors used to compute a vector may either be **out of bounds** or **non-walkable**.
@@ -541,12 +583,18 @@ Since it doesn’t compute a weighted sum or derivative, but instead selects the
 This ensures **correctness** without the need for fallback values.
 Since the method only looks at valid neighbors, it’s inherently more resistant to **edge distortions** and works well for tiles bordering walls or edges.
 
+<br/>
+<br/>
+<br/>
+<br/>
 
 ## Performance, Time Complexity & Common Questions
 
 Now that we've covered how VFP works in detail, it's worth stepping back and asking: where does it actually fit in the landscape of pathfinding?
 The comment section of my original video surfaced that question repeatedly — along with a few misconceptions I was responsible for spreading.
 Here are the ones that came up most often, with the answers I should have given back then.
+
+<br/>
 
 ### Isn't VFP just Dijkstra ?
 
@@ -559,6 +607,8 @@ VFP is a **movement model**, it precomputes a direction for every tile in the gr
 
 Vectorfield pathfinding is not a better shortest-path algorithm than Dijkstra. It's a better *movement architecture* for many agents sharing the same goal.
 
+<br/>
+
 ### Why a grid? Why not navigation meshes or Voronoi diagrams?
 
 The grid is a **choice**, not a necessity *(and one that I didn't justify in my original video)*, mostly because I lacked the theoretical context at the time.
@@ -567,6 +617,8 @@ Continuous space, navigation meshes, and Voronoi diagrams are all legitimate way
 Grids are popular for this kind of application because they combine **simplicity**, **cache-friendliness**, and excellent **GPU parallelism**.
 Every tile is the same size, storage is compact, and operations like convolution map perfectly fits to GPU hardware
 For real-time simulations with large agent counts, those properties will matter a lot.
+
+<br/>
 
 ### Is VFP faster than Djikstra / A*?
 
@@ -637,5 +689,19 @@ On a GPU with $p$ threads, an $N \times M$ convolution reduces to $O(NM/p)$, whi
 So on the **CPU**, VFP adds overhead compared to a bare Dijkstra, unless you use the parent-pointer trick to skip the vector field step entirely.
 On the **GPU**, the Eikonal + convolution pipeline scales nearly linearly with the number of threads, and on modern hardware that means computing the full vector field for an enormous grid in milliseconds.
 
+<SandboxAnim/>
 
-Do SEO (through hyperlink + alt)
+<br/>
+<br/>
+<br/>
+
+## So What's Next ? 
+
+One interesting aspect of VFP is that, in the end, it produces an actual **vector field** that wecan explore **mathematically**.
+Even if obstacles create **undefined regions** in the field, methods could be designed to **reconstruct or complete** those areas.
+
+This opens the door to many possible experiments and extensions.
+For instance, computing the **divergence** and **curl** of the field could help analyze how paths behave locally, such as identifying areas with **strong curvature** or convergence.
+Another idea worth exploring would be applying a discrete [Helmholtz–Hodge decomposition](https://en.wikipedia.org/wiki/Helmholtz%E2%80%93Hodge_decomposition) to better understand and **customize the behavior** of the generated field.
+
+These are just a few examples of directions that could be explored further by anyone interested in pushing the subject beyond the basics !
