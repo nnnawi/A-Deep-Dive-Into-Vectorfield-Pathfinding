@@ -17,19 +17,16 @@ jobs:
         with:
           node-version: "20"
           cache: "npm"
-          cache-dependency-path: "vectorfield-blogpost/package-lock.json"
 
       - name: Install dependencies
-        working-directory: vectorfield-blogpost
         run: npm ci
 
       - name: Build site
-        working-directory: vectorfield-blogpost
         run: npm run build
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./vectorfield-blogpost/dist
+          publish_dir: ./dist
           cname: false
