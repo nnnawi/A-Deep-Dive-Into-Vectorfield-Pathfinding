@@ -37,11 +37,14 @@ or more precisely the path <mjx-container class="MathJax" jax="SVG"><svg style="
 We can think of it as <strong>a 2D grid</strong> where each tile connects to all its 8 surrounding neighbors, like how a king moves in chess.</p>
 <p>This graph is <strong>undirected</strong>, meaning connections flow both ways between tiles and
 each connection (edge) carries <strong>a weight determined by a distance kernel</strong>—a predefined matrix that might, for instance, make diagonal connections less costly than horizontal or vertical ones.</p>
-<div style="display: flex; flex-direction: column; align-items: center; margin: 25px 0 50px 0; gap: 15px"><div id="graphGridRelationAnim"></div> <script type="module" src="/VectorField-Pathfinding-Blog/_astro/GraphGridRelationAnim.astro_astro_type_script_index_0_lang.CCGfL0To.js"></script><div style="display: flex; flex-direction: column; align-items: center; gap: 8px"><span>A 2D Grid w/ its corresponding node graph</span><span class="title-indication"> Click &amp; Drag over the grid to add walls </span></div></div>
+<div style="display: flex; flex-direction: column; align-items: center; margin: 25px 0 50px 0; gap: 15px"><div id="graphGridRelationAnim"></div> <script type="module" src="/VectorField-Pathfinding-Blog/_astro/GraphGridRelationAnim.astro_astro_type_script_index_0_lang.CCGfL0To.js"></script><div style="display: flex; flex-direction: column; align-items: center; gap: 8px"><span>A 2D Grid w/ its corresponding node graph</span><span class="title-indication"> <p>Click &amp; Drag over the grid to add walls </p></span></div></div>
 <p>With our 2D grid in place, we can now define which tiles are <strong>walkable</strong> and which act as <strong>walls</strong>.
 In graph terms, walkable tiles stay as nodes while walls are simply removed from the graph entirely.</p>
-<div class="info-container"><div class="title">Why are we doing this ?</div><p><p>The <strong>8-neighbor grid graph approach</strong> provides a <strong>universal way to discretize any 2D space</strong> and apply pathfinding —<em>whether for robotic, video games, etc…</em>
-Therefore finding the shortest path between two tiles while avoiding walls becomes finding the shortest path between two vertices in our modified graph.</p></p></div>
+<div class="info-container"><div class="title">Why are we doing this ?</div><p><p>The <strong>8-neighbor grid graph approach</strong> provides a <strong>universal way to
+discretize any 2D space</strong> and apply pathfinding —<em>whether for robotic, video
+games, etc…</em> Therefore finding the shortest path between two tiles while
+avoiding walls becomes finding the shortest path between two vertices in our
+modified graph.</p></p></div>
 <br/>
 <br/>
 <br/>
@@ -82,11 +85,14 @@ Similarly, algorithms like <mjx-container class="MathJax" jax="SVG"><svg style="
 <p>This process essentially <strong>spreads a “wavefront”</strong> of <u>shortest distances</u> to the source across the graph, updating nodes as more efficient paths are discovered.</p>
 <p>When the algorithm finishes, each node stores its distance to the target and the next neighbor to reach it.
 To find the shortest path from any node, simply follow these neighbors step by step until you reach the target.</p>
-<div class="info-container"><div class="title">Details &amp; Implementation tips</div><p><p>Many <strong>different implementations</strong>   of the Djikstra Algorithm exist.
-I chose this one since it’s one of the simplest to understand, especially for grid-based pathfinding.
-More efficient implementations exist such as using a <strong>binary heap</strong> to improve time complexity, particularly for sparse graphs.</p><br/><p>Note also that this version runs until all nodes are visited.
-In practice, if you only need the path to a target node, you can stop once it’s reached.
-Also instead of initializing the queue with all nodes, another common approach is to start with only the source node and add neighbors to the queue as they are discovered.</p></p></div>
+<div class="info-container"><div class="title">Details &amp; Implementation tips</div><p><p>Many <strong>different implementations</strong> of the Djikstra Algorithm exist. I chose
+this one since it’s one of the simplest to understand, especially for
+grid-based pathfinding. More efficient implementations exist such as using a
+<strong>binary heap</strong> to improve time complexity, particularly for sparse graphs.</p><br/><p>Note also that this version runs until all nodes are visited. In practice,
+if you only need the path to a target node, you can stop once it’s reached.
+Also instead of initializing the queue with all nodes, another common
+approach is to start with only the source node and add neighbors to the
+queue as they are discovered.</p></p></div>
 <br/>
 <br/>
 <br/>
@@ -135,9 +141,14 @@ And the speed function <mjx-container class="MathJax" jax="SVG"><svg style="vert
 <br/>
 <div class="eikonal-container" data-astro-cid-rklleaqa> <div id="eikonalHeatmap" data-astro-cid-rklleaqa></div> <p data-astro-cid-rklleaqa>Each tile is colored by its distance to the cursor. Click & drag mouse to add or remove walls.</p> <div class="controls" data-astro-cid-rklleaqa> <div class="single-control" data-astro-cid-rklleaqa> <span data-astro-cid-rklleaqa>Color Mode</span> <div class="mode-selector-container" data-astro-cid-rklleaqa> <button class="mode-btn" data-mode="hue" data-astro-cid-rklleaqa>Hue</button> <button class="mode-btn" data-mode="gradient" data-astro-cid-rklleaqa>Magma</button> <button class="mode-btn" data-mode="grayscale" data-astro-cid-rklleaqa>Gray</button> </div> </div> <div class="single-control" data-astro-cid-rklleaqa> <span data-astro-cid-rklleaqa>Show Distance</span> <div class="show-distance-container" data-astro-cid-rklleaqa> <button class="show-btn" data-show="true" data-astro-cid-rklleaqa>On</button> <button class="show-btn" data-show="false" data-astro-cid-rklleaqa>Off</button> </div> </div> </div> </div> <script type="module" src="/VectorField-Pathfinding-Blog/_astro/EikonalHeatmapAnim.astro_astro_type_script_index_0_lang.BrssdRfo.js"></script> 
 <p>The eikonal equation offers a <strong>continuous alternative</strong> to Dijkstra’s algorithm for heatmap generation though it’s originally from a different field and wasn’t designed for graph problems.</p>
-<div class="info-container"><div class="title">What’s the difference with Djikstra</div><p><p>Because it’s continuous, the eikonal solver spontaneously produces <strong>smooth, floating-point distance values</strong>, unlike Dijkstra, which gives discrete steps.
-In the eikonal model, the wavefront spreads out in a circular pattern, like a ripple in water.</p><br/><p>In contrast, Dijkstra’s wavefront can look square, diamond-shaped, or roughly round depending on the distance kernel used.
-This makes the eikonal approach appealing: it gives a more <strong>natural, physics-inspired result</strong> with smoother, more organic heatmaps and fewer artifacts compared to Dijkstra-based methods.</p></p></div>
+<div class="info-container"><div class="title">What’s the difference with Djikstra</div><p><p>Because it’s continuous, the eikonal solver spontaneously produces <strong>smooth,
+floating-point distance values</strong>, unlike Dijkstra, which gives discrete
+steps. In the eikonal model, the wavefront spreads out in a circular
+pattern, like a ripple in water.</p><br/><p>In contrast, Dijkstra’s wavefront can look square, diamond-shaped, or
+roughly round depending on the distance kernel used. This makes the eikonal
+approach appealing: it gives a more <strong>natural, physics-inspired result</strong>
+with smoother, more organic heatmaps and fewer artifacts compared to
+Dijkstra-based methods.</p></p></div>
 <br/>
 <br/>
 <br/>
