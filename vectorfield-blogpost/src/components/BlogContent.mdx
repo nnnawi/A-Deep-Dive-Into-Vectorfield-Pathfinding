@@ -585,8 +585,17 @@ Since the method only looks at valid neighbors, it’s inherently more resistant
 
 <br/>
 <br/>
+
+## Create your custom VFP 
+<br/>
+<SandboxAnim/>
+
+
 <br/>
 <br/>
+<br/>
+<br/>
+
 
 ## Performance, Time Complexity & Common Questions
 
@@ -689,15 +698,13 @@ On a GPU with $p$ threads, an $N \times M$ convolution reduces to $O(NM/p)$, whi
 So on the **CPU**, VFP adds overhead compared to a bare Dijkstra, unless you use the parent-pointer trick to skip the vector field step entirely.
 On the **GPU**, the Eikonal + convolution pipeline scales nearly linearly with the number of threads, and on modern hardware that means computing the full vector field for an enormous grid in milliseconds.
 
-<SandboxAnim/>
-
 <br/>
 <br/>
 <br/>
 
 ## So What's Next ? 
 
-One interesting aspect of VFP is that, in the end, it produces an actual **vector field** that wecan explore **mathematically**.
+One interesting aspect of VFP is that, in the end, it produces an actual **vector field** that we can explore **mathematically**.
 Even if obstacles create **undefined regions** in the field, methods could be designed to **reconstruct or complete** those areas.
 
 This opens the door to many possible experiments and extensions.
