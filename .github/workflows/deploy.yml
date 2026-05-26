@@ -4,6 +4,9 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: write
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -23,12 +26,6 @@ jobs:
       - name: Build site
         working-directory: vectorfield-blogpost
         run: npm run build
-
-      - name: Deploy to GitHub Pages
-        uses: actions/upload-artifact@v4
-        with:
-          name: github-pages
-          path: vectorfield-blogpost/dist
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
