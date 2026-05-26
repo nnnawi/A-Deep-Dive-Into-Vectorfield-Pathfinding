@@ -14,7 +14,7 @@ import FallbackComparison from 'FallbackComparison.astro'
 import SandboxAnim from './SandboxAnim.astro';
 
 <video autoplay muted loop playsinline style="width: 100%;">
-  <source src="/header-animation.mp4" type="video/mp4">
+  <source src="/VectorField-Pathfinding-Blog/header-animation.mp4" type="video/mp4">
   Your browser does not support the video tag.
   </source>
 </video>
@@ -22,7 +22,7 @@ import SandboxAnim from './SandboxAnim.astro';
 <div style="position: relative">
 # A Deep Dive Into <span style="color: #DF2D19; font-weight: 800;">Vectorfield</span> Pathfinding
 
-<img src="/arrow-title-red-alpha.png" style="width: 100%; position: absolute; top: 1.5px; right: -15px" />
+<img src="/VectorField-Pathfinding-Blog/arrow-title-red-alpha.png" style="width: 100%; position: absolute; top: 1.5px; right: -15px" />
 </div>
 
 ## Introduction.
@@ -49,7 +49,7 @@ I liked it so much that I even made a video about it in 2020 just to share how c
   allow="autoplay; encrypted-media"
   allowfullscreen
 ></iframe>
-<img src="/ytb-frame.png" />
+<img src="/VectorField-Pathfinding-Blog/ytb-frame.png" />
 </div>
 
 The video ended up doing very well for a niche subject! It sparked a lot of great discussions in the comments: _people sharing alternative approaches, asking smart questions, or diving deeper into the method_.
@@ -297,7 +297,7 @@ One important customization at this stage involves the choice of **distance kern
 As mentioned earlier, the distances between a node and its eight neighbors are determined by a kernel or weight matrix.
 By selecting different distance matrices, we can control how **distances are accumulated**, which directly affects the **shape** of the heatmap and thus the **resulting behavior** of the pathfinding.
 
-<img src="/distance_kernel_exp2.png" style="width:105%; position: relative; left: -15px"/>
+<img src="/VectorField-Pathfinding-Blog/distance_kernel_exp2.png" style="width:105%; position: relative; left: -15px"/>
 
 <br/>
 <br/>

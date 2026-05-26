@@ -1,0 +1,1 @@
+function i(e,r){const o=document.getElementById(r);if(!o)return;e.noLoop(),new IntersectionObserver(t=>{t.forEach(s=>{s.isIntersecting?e.loop():e.noLoop()})},{threshold:0,rootMargin:"200px 0px"}).observe(o)}export{i as s};
