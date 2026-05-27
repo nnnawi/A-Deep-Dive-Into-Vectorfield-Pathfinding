@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Vector Field Pathfinding</title><!-- Google Fonts - Custom font for text --><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&display=swap" rel="stylesheet"><!-- p5.js library --><script type="module" src="/VectorField-Pathfinding-Blog/_astro/Layout.astro_astro_type_script_index_0_lang.D79MgR3T.js"></script><link rel="stylesheet" href="/VectorField-Pathfinding-Blog/_astro/index.CUu5LL_i.css"></head> <body> <header class="header"> <div class="header-top"> <a href="https://github.com/nnnawi" class="author-name" target="_blank" rel="noopener noreferrer">Made by Iwan Ibnoulouafi</a> </div> </header> <div class="container">  <video autoplay muted loop playsinline style="width: 100%;"><source src="/VectorField-Pathfinding-Blog/header-animation.mp4" type="video/mp4"><p>Your browser does not support the video tag.</p></source></video>
+<!DOCTYPE html><html lang="en"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>A Deep dive into Vector Field Pathfinding</title><!-- Favicon --><link rel="icon" type="image/x-icon" href="/VectorField-Pathfinding-Blog/favicon.ico"><link rel="apple-touch-icon" href="/VectorField-Pathfinding-Blog/favicon.ico"><!-- Google Fonts - Custom font for text --><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&display=swap" rel="stylesheet"><!-- p5.js library --><script type="module" src="/VectorField-Pathfinding-Blog/_astro/Layout.astro_astro_type_script_index_0_lang.D79MgR3T.js"></script><link rel="stylesheet" href="/VectorField-Pathfinding-Blog/_astro/index.CFFZcTpu.css"></head> <body> <header class="header"> <div class="header-top"> <a href="https://github.com/nnnawi" class="author-name" target="_blank" rel="noopener noreferrer">Made by Iwan Ibnoulouafi</a> </div> </header> <div class="container">  <video autoplay muted loop playsinline style="width: 100%;"><source src="/VectorField-Pathfinding-Blog/header-animation.mp4" type="video/mp4"><p>Your browser does not support the video tag.</p></source></video>
 <div style="position: relative"><h1 id="a-deep-dive-into-vectorfield-pathfinding">A Deep Dive Into <span style="color: #DF2D19; font-weight: 800;">Vectorfield</span> Pathfinding</h1><img src="/VectorField-Pathfinding-Blog/arrow-title-red-alpha.png" style="width: 100%; position: absolute; top: 1.5px; right: -15px"/></div>
 <h2 id="introduction">Introduction.</h2>
 <p>Back in 2016, while building a clone of <a href="https://nintendo.fandom.com/wiki/Tanks!">Tanks!</a>,
@@ -516,31 +516,33 @@ mjx-container[jax="SVG"] path[data-c], mjx-container[jax="SVG"] use[data-c] {
   stroke-width: 3;
 }
 </style>  </div> <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        document.querySelectorAll('.expandable-container').forEach(function(container) {
-          var content = container.querySelector('.expandable-content');
-          var fade = container.querySelector('.expandable-fade');
-          var toggle = container.querySelector('.expandable-toggle');
-          if (!content || !fade || !toggle) return;
+      document.addEventListener('DOMContentLoaded', function () {
+        document
+          .querySelectorAll('.expandable-container')
+          .forEach(function (container) {
+            var content = container.querySelector('.expandable-content');
+            var fade = container.querySelector('.expandable-fade');
+            var toggle = container.querySelector('.expandable-toggle');
+            if (!content || !fade || !toggle) return;
 
-          var toggleText = toggle.querySelector('.expandable-toggle-text');
-          var toggleIcon = toggle.querySelector('.expandable-toggle-icon');
-          var expanded = false;
+            var toggleText = toggle.querySelector('.expandable-toggle-text');
+            var toggleIcon = toggle.querySelector('.expandable-toggle-icon');
+            var expanded = false;
 
-          toggle.addEventListener('click', function() {
-            expanded = !expanded;
-            if (expanded) {
-              content.style.maxHeight = content.scrollHeight + 'px';
-              fade.classList.add('hidden');
-              if (toggleText) toggleText.textContent = 'Show less';
-              if (toggleIcon) toggleIcon.style.transform = 'rotate(180deg)';
-            } else {
-              content.style.maxHeight = '100px';
-              fade.classList.remove('hidden');
-              if (toggleText) toggleText.textContent = 'Full explanation';
-              if (toggleIcon) toggleIcon.style.transform = '';
-            }
+            toggle.addEventListener('click', function () {
+              expanded = !expanded;
+              if (expanded) {
+                content.style.maxHeight = content.scrollHeight + 'px';
+                fade.classList.add('hidden');
+                if (toggleText) toggleText.textContent = 'Show less';
+                if (toggleIcon) toggleIcon.style.transform = 'rotate(180deg)';
+              } else {
+                content.style.maxHeight = '100px';
+                fade.classList.remove('hidden');
+                if (toggleText) toggleText.textContent = 'Full explanation';
+                if (toggleIcon) toggleIcon.style.transform = '';
+              }
+            });
           });
-        });
       });
     </script> </body> </html>
