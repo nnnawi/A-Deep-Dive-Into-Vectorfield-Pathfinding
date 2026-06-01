@@ -6,8 +6,8 @@ import remarkMath from 'remark-math';
 
 // https://astro.build/config
 export default defineConfig({
-  site: 'https://nnnawi.github.io/VectorField-Pathfinding-Blog/',
-  base: '/VectorField-Pathfinding-Blog/',
+  site: 'https://nnnawi.github.io/A-Deep-Dive-Into-Vectorfield-Pathfinding/',
+  base: '/A-Deep-Dive-Into-Vectorfield-Pathfinding/',
   output: 'static',
   integrations: [
     mdx({
