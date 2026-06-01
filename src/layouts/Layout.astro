@@ -13,11 +13,11 @@
     <link
       rel="icon"
       type="image/x-icon"
-      href="/VectorField-Pathfinding-Blog/favicon.ico"
+      href="/A-Deep-Dive-Into-Vectorfield-Pathfinding/favicon.ico"
     />
     <link
       rel="apple-touch-icon"
-      href="/VectorField-Pathfinding-Blog/favicon.ico"
+      href="/A-Deep-Dive-Into-Vectorfield-Pathfinding/favicon.ico"
     />
 
     <!-- Google Fonts - Custom font for text -->
@@ -675,7 +675,7 @@
         transform: translate(-50%, -50%);
         width: 110%;
         height: 100%;
-        background: url('/VectorField-Pathfinding-Blog/ytb-frame.png') center
+        background: url('/A-Deep-Dive-Into-Vectorfield-Pathfinding/ytb-frame.png') center
           center/100% 100% no-repeat;
         z-index: -1;
         pointer-events: none;
@@ -775,12 +775,14 @@
           splashScreen.classList.add('hidden');
         }
 
-        // Hide splash when button is clicked
+        // Hide splash when button is clicked or touched
         if (continueBtn) {
-          continueBtn.addEventListener('click', function () {
+          function hideSplash() {
             splashScreen.classList.add('hidden');
             localStorage.setItem('mobileSplashSeen', 'true');
-          });
+          }
+          continueBtn.addEventListener('click', hideSplash);
+          continueBtn.addEventListener('touchend', hideSplash);
         }
 
         // Expandable containers logic
