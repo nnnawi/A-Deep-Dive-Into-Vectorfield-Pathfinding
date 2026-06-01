@@ -693,7 +693,7 @@ The Eikonal equation, on the other hand, is better designed for this kind of dis
 Methods like the **Fast Iterative Algorithm (FIA)** decompose the problem into independent local updates that can be dispatched across thousands of GPU threads simultaneously, making full use of SIMD instructions and shared memory.
 
 Convolution _(ie. the basis of Sobel, min-neighbor, and weighted sum)_ is _embarrassingly parallel_: every tile can be updated independently.
-On a GPU with $p$ threads, an $N \times M$ convolution reduces to $O(NM/p)$, which in practice approaches $O(1)$ for large grids with enough parallelism.
+On a GPU with $p$ threads, an $N \times M$ convolution reduces to $O(NM/p)$, which in theory approaches $O(1)$ for large grids with enough parallelism.
 
 <div class="complexity-table-wrapper">
 
